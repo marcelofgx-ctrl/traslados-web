@@ -15,7 +15,7 @@ export function operativa(): SupabaseClient {
   if (!client) {
     const key = OPERATIVA_PUBLISHABLE_KEY;
     client = createClient(OPERATIVA_URL, key, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: "tcr-operativa" },
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit", storageKey: "tcr-verified-email" },
       global: {
         // Las claves sb_publishable_ no son JWT: se envían solo como apikey.
         fetch: (input, init) => {
