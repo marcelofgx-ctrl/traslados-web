@@ -123,11 +123,11 @@ function Access({success}:{success:()=>void}) {
     </div>
   </section>;
 }
-function Booking({ customer, token, onSent }: {customer:string,token:string,onSent:(code:string)=>void}) {
+function Booking({ customer, token, onSent, previous }: {customer:string,token:string,onSent:(code:string)=>void,previous:OpReservation|null}) {
   const [date,setDate]=useState(()=>mvdNow().date),[time,setTime]=useState(""),[passengers,setPassengers]=useState(1);
-  const [origin,setOrigin]=useState<Loc|null>(null),[destination,setDestination]=useState<Loc|null>(null);
-  const [stops,setStops]=useState<Stop[]>([]),[nextId,setNextId]=useState(1);
-  const [comments,setComments]=useState(""),[forOther,setForOther]=useState(false),[otherName,setOtherName]=useState(""),[otherPhone,setOtherPhone]=useState("");
+  const [origin,setOrigin]=useState<Loc|null>(previous?{text:previous.origin_text,lat:previous.origin_lat,lng:previous.origin_lng,department:previous.origin_department??null}:null),[destination,setDestination]=useState<Loc|null>(previous?{text:previous.destination_text,lat:previous.destination_lat,lng:previous.destination_lng,department:previous.destination_department??null}:null);
+  const [stops,setStops]=useState<Stop[]>(()=>previous?.stops?.map((x,i)=>({id:i+1,value:{text:x.address_text,lat:x.lat,lng:x.lng,department:x.department}}))??[]),[nextId,setNextId]=useState((previous?.stops?.length??0)+1);
+  const [comments,setComments]=useState(""),[forOther,setForOther]=useState(Boolean(previous?.passenger_name)),[otherName,setOtherName]=useState(previous?.passenger_name??""),[otherPhone,setOtherPhone]=useState(previous?.passenger_phone??"");
   const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false);
   const errors:string[]=[];
   if(!origin)errors.push("Seleccioná el origen.");
@@ -195,7 +195,7 @@ function Booking({ customer, token, onSent }: {customer:string,token:string,onSe
     </div>}
   </section>;
 }
-function HistoryView({ token, go }:{token:string,go:(v:View)=>void}) {
+function HistoryView({ token, go, onRepeat }:{token:string,go:(v:View)=>void,onRepeat:(r:OpReservation)=>void}) {
   const [items,setItems]=useState<OpReservation[]>([]);
   const [loading,setLoading]=useState(true),[error,setError]=useState("");
   const [tab,setTab]=useState<"proximos"|"historico">("proximos");
@@ -230,6 +230,7 @@ function HistoryView({ token, go }:{token:string,go:(v:View)=>void}) {
               {r.quote_final_total!=null&&<Detail label="Presupuesto" value={"$ "+r.quote_final_total}/>}
               {r.comments&&<Detail label="Comentarios" value={r.comments}/>}
             </div>}
+            <button type="button" onClick={()=>onRepeat(r)} className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-primary hover:underline"><RefreshCw className="size-3.5"/> Repetir este recorrido</button>
           </div>)}</div>}
         </div>)}</div>}
       </div>)}</div>}
@@ -238,17 +239,17 @@ function HistoryView({ token, go }:{token:string,go:(v:View)=>void}) {
 function TrasladosWeb() {
   const session=useCustomerSession();
   const [view,setView]=useState<View>("inicio"),[wanted,setWanted]=useState<"reserva"|"historial">("reserva");
-  const [valid,setValid]=useState<string|null>(null),[sent,setSent]=useState("");
+  const [valid,setValid]=useState<string|null>(null),[sent,setSent]=useState(""),[previous,setPrevious]=useState<OpReservation|null>(null);
   useEffect(()=>{if(!session?.token){setValid(null);return;}let active=true;getProfile(session.token).then(p=>{if(!active)return;if(p)setValid(session.token);else{writeSession(null);setValid(null);setView("acceso");}}).catch(()=>{if(active)toast.error("No pudimos validar tu sesión con el servidor.");});return()=>{active=false;};},[session?.token]);
   const signed=Boolean(session&&session.token===valid);
-  function go(v:View){if((v==="reserva"||v==="historial")&&!signed){setWanted(v);setView("acceso");}else setView(v);if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}
+  function go(v:View){if(v==="reserva")setPrevious(null);if((v==="reserva"||v==="historial")&&!signed){setWanted(v);setView("acceso");}else setView(v);if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}
   const onAccess=()=>setView(wanted);
   return <main className="min-h-screen overflow-x-hidden">
     <Header go={go} name={signed?session?.customer.full_name:undefined}/>
     {view==="inicio"&&<Home go={go}/>}
     {view==="acceso"&&(signed?<section className="mx-auto max-w-lg px-5 py-16 text-center"><CheckCircle2 className="mx-auto size-12 text-success"/><h1 className="mt-4 font-display text-2xl">Sesión iniciada</h1><p className="mt-3 text-sm text-muted-foreground">{session?.customer.full_name}</p><div className="mt-6 flex justify-center gap-2"><Button onClick={()=>go("historial")}>Mis viajes</Button><Button variant="outline" onClick={()=>go("reserva")}>Reservar</Button></div><Button variant="ghost" className="mt-6" onClick={()=>{if(session)void logout(session.token);setValid(null);setView("inicio");}}><LogOut className="mr-2 size-4"/> Cerrar sesión</Button></section>:<Access success={onAccess}/>)}
-    {view==="reserva"&&(signed?<Booking token={session!.token} customer={session!.customer.full_name} onSent={code=>{setSent(code);setView("enviada");}}/>:<Access success={()=>setView("reserva")}/>)}
-    {view==="historial"&&(signed?<HistoryView token={session!.token} go={go}/>:<Access success={()=>setView("historial")}/>)}
+    {view==="reserva"&&(signed?<Booking key={previous?.id??"new"} previous={previous} token={session!.token} customer={session!.customer.full_name} onSent={code=>{setSent(code);setPrevious(null);setView("enviada");}}/>:<Access success={()=>setView("reserva")}/>)}
+    {view==="historial"&&(signed?<HistoryView token={session!.token} go={go} onRepeat={r=>{setPrevious(r);setView("reserva");if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}}/>:<Access success={()=>setView("historial")}/>)}
     {view==="enviada"&&<section className="mx-auto max-w-lg px-5 py-20 text-center"><CheckCircle2 className="mx-auto size-16 text-success"/><h1 className="mt-5 font-display text-3xl">Solicitud recibida</h1><p className="mt-3 text-sm text-muted-foreground">Queda pendiente de confirmación del conductor.</p><div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-5"><p className="text-xs uppercase tracking-[.2em] text-primary">Código de reserva</p><p className="mt-2 font-display text-3xl font-semibold">{sent}</p></div><Button className="mt-7 h-12 w-full" onClick={()=>go("historial")}>Ver mis traslados</Button></section>}
     <footer className="border-t border-border/60 bg-[#0d2026]">
       <div className="mx-auto grid max-w-6xl gap-7 px-5 py-10 sm:grid-cols-3 sm:px-8">
