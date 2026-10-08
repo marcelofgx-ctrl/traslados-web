@@ -10,7 +10,13 @@ Web premium de reservas, agenda e historial de traslados en Uruguay.
 
 El código fue recuperado de Lovable, trasladado íntegramente a este repositorio y desacoplado del paquete `@lovable.dev/vite-tanstack-config`. El build utiliza las herramientas oficiales de **Cloudflare Workers**, **TanStack Start**, **Vite**, **React** y **Tailwind CSS**. El diseño petróleo/grafito/dorado se conserva en `src/styles.css` y en los componentes.
 
-**No es todavía una nueva versión funcional desplegada.** Actualmente las rutas de la web siguen siendo mayoritariamente legacy, conectadas con su Supabase original. Los módulos de conexión a Supabase operativo, búsqueda IDE Uruguay y selector horario de 24 horas están presentes pero **todavía deben integrarse a las pantallas**. No confundir build verde con prueba funcional de reserva.
+**Estado actualizado el 08/10:** La página `/` ahora contiene portada premium, acceso con PIN para clientes existentes, buscador IDE Uruguay por departamento, selección en mapa, paradas reordenables, reserva para terceros, historial agrupado por mes/semana y repetición de itinerarios. El formulario principal llama las RPCs de Supabase operativo, no el backend Lovable. Las paradas se copian además a comentarios para que las APK antiguas del conductor puedan leerlas mientras se actualizan.
+
+**Verificaciones:** GitHub Actions `37815099518` verde en Bun 1.2.15 y 1.3.4: TypeScript, build Cloudflare y prueba HTTP local de la portada (200 con texto comprobado).
+
+**Pendiente de producción:** NO tenemos URL de Cloudflare confirmada; no se han probado sesiones reales, alta de cliente, navegación móvil real, una reserva completa con paradas, entrega al conductor ni seguridad de recuperación de PIN. La web no debe publicitarse como lista para clientes aún.
+
+**Alta pública de nuevos clientes:** se mantiene deshabilitada hasta configurar verificación del número mediante un proveedor OTP; acceso existente por teléfono/PIN. No inventar envío SMS. Las rutas legacy `/conductor` y `/seguimiento` conservan su anterior Supabase, pendiente migración.
 
 ### Desarrollo local
 
@@ -30,24 +36,24 @@ Objetivo: alojar con Cloudflare Workers, sin necesidad de créditos de Lovable. 
 
 ### Funcionalidades comprometidas
 
-- Horario 24 horas `HH:mm` en toda la web.
+- Horario 24 horas `HH:mm` en el nuevo formulario; panel legacy Conductor pendiente.
 - Selector de departamentos: Montevideo/Canelones fijos + los otros 17 del Uruguay.
 - Autocompletado de direcciones exclusivamente Uruguay con datos de la IDE, y elección de punto en mapa como respaldo.
 - Origen, varias paradas intermedias reordenables y destino final, guardados en Supabase.
-- Clientes con identidad verificada, historial agrupado por mes/semana, repetir viaje, viajes futuros y estados reales.
+- Clientes existentes vía PIN (sin SMS), historial agrupado por mes/semana, repetir viaje, viajes futuros y estados reales. Verificación real del número pendiente.
 - Reservas para terceros con datos de pasajero.
 - Estética premium en todas las pantallas.
 - Compatibilidad posterior con APK Conductor y posible integración con APK Mapa, decisión aún no tomada.
 
 ### Backend y seguridad
 
-La migración **v12** ya se aplicó en la base operativa Supabase `zetaudvvutlouiqxopvg`, agregando `reservation_stops` y RPCs `customer_create_reservation_v12` / `customer_list_reservations_v12` sin borrar reservas previas. **Las APK todavía no leen esas paradas.**
+La migración **v12** ya se aplicó en la base operativa Supabase `zetaudvvutlouiqxopvg`, agregando `reservation_stops` y RPCs `customer_create_reservation_v12` / `customer_list_reservations_v12` sin borrar reservas previas. **Las APK todavía no leen esas paradas estructuradas; la web actual agrega información de paradas a comentarios mientras tanto.**
 
 El login existente del backend usa teléfono+PIN, **no verifica la posesión del número**; antes de abrir el registro al público se debe completar un flujo de verificación real, protección contra abuso y recuperación de acceso (SMS/WhatsApp OTP mediante proveedor). No simular OTP.
 
 ### Archivos faltantes
 
-La exportación no incluyó iconos binarios de `public/favicon.png` ni `public/icons/`, y omitió la APK vieja v8 de `public/downloads/`. Recuperarlos o regenerarlos antes de abrir la web a clientes.
+El nuevo `public/icon.svg` es funcional y está referenciado en el manifest; faltan todavía los recursos PNG de la antigua PWA y la APK antigua v8 de `public/downloads/`.
 
 Detalles y trabajo pendiente en [PLAN_MIGRACION_WEB_SIN_LOVABLE.md](PLAN_MIGRACION_WEB_SIN_LOVABLE.md).
 
