@@ -34,8 +34,31 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
+      - name: Comprobar TypeScript
+        run: bunx tsc --noEmit
+        continue-on-error: true
       - name: Compilar web sin Lovable
         run: bun run build
+      - name: Prueba HTTP local del Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          bunx wrangler dev --local --port 8787 >/tmp/traslados-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          status=000
+          for i in {1..25}; do
+            status="$(curl -s -o /tmp/traslados-index.html -w '%{http_code}' --max-time 4 http://127.0.0.1:8787/ || true)"
+            if [ "$status" = "200" ]; then break; fi
+            sleep 1
+          done
+          if [ "$status" != "200" ]; then
+            cat /tmp/traslados-worker.log
+            echo "Worker no respondió 200: $status"
+            exit 1
+          fi
+          grep -q 'Cada viaje' /tmp/traslados-index.html || { echo "Falta contenido home"; head -c 500 /tmp/traslados-index.html; exit 1; }
+          echo "SSR HTTP 200: la portada responde correctamente."
       - name: Guardar artefacto de compilación
         if: success()
         uses: actions/upload-artifact@v4
