@@ -1,9 +1,10 @@
-name: Traslados Web — Desarrollo autónomo
+name: Traslados Web — CI independiente
 
 on:
   push:
-    branches:
-      - web-traslados-desarrollo
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,31 +12,33 @@ permissions:
 
 jobs:
   build:
-    name: Compilar Cloudflare sin dependencias Lovable
+    name: Build Cloudflare Workers / TanStack Start
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      # Valores de compilación solamente; no son credenciales operativas.
       VITE_SUPABASE_URL: https://xetklwcxebcpnkrdrmaa.supabase.co
       SUPABASE_URL: https://xetklwcxebcpnkrdrmaa.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: build-only-test-key
       SUPABASE_PUBLISHABLE_KEY: build-only-test-key
     steps:
-      - uses: actions/checkout@v4
+      - name: Descargar código
+        uses: actions/checkout@v4
       - name: Instalar Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.4'
-      - name: Instalar dependencias sin Lovable
+      - name: Instalar dependencias
         run: bun install
-      - name: Construir web con Cloudflare
+      - name: Compilar web sin Lovable
         run: bun run build
-      - name: Guardar compilación
+      - name: Guardar artefacto de compilación
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: web-traslados-cloudflare
+          name: traslados-web-cloudflare
           path: |
             dist/
             .output/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
