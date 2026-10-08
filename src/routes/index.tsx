@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UyLocationPicker } from "@/components/UyLocationPicker";
 import { TimeSelect24 } from "@/components/TimeSelect24";
+import { EmailAccess } from "@/components/EmailAccess";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, createReservation, getProfile,
   listReservations, login, logout, type Loc, type OpReservation,
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/")({
   component: TrasladosWeb,
 });
 
-type View = "inicio" | "acceso" | "reserva" | "historial" | "enviada";
+type View = "inicio" | "acceso" | "registro" | "recuperar" | "reserva" | "historial" | "enviada";
 type Stop = { id: number; value: Loc | null };
 const CONTACT = "+59897228175";
 const WHATSAPP = "https://wa.me/59897228175";
@@ -98,7 +99,7 @@ function Home({go}:{go:(v:View)=>void}) {
     </section>
   </>;
 }
-function Access({success}:{success:()=>void}) {
+function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>void,onRecover:()=>void}) {
   const [phone,setPhone]=useState(""),[pin,setPin]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
   async function submit(e:FormEvent) {
     e.preventDefault();
@@ -119,7 +120,11 @@ function Access({success}:{success:()=>void}) {
         {message&&<p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning" role="alert">{message}</p>}
         <Button className="h-12 w-full" type="submit" disabled={busy}>{busy?"Ingresando…":"Ingresar"} <ArrowRight className="ml-2 size-4"/></Button>
       </form>
-      <div className="mt-6 border-t border-border pt-5 text-center"><p className="text-xs leading-6 text-muted-foreground">Las altas nuevas requieren asistencia hasta que esté configurada la verificación real del número de teléfono.</p><a href={WHATSAPP} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary"><Phone className="size-4"/> Solicitar acceso</a></div>
+      <div className="mt-6 space-y-3 border-t border-border pt-5 text-center">
+        <button type="button" className="w-full rounded-xl border border-primary/35 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15" onClick={onRegister}>Soy nuevo · Crear cuenta <ArrowRight className="ml-1 inline size-4"/></button>
+        <button type="button" className="w-full text-sm font-medium text-muted-foreground hover:text-primary" onClick={onRecover}>¿Olvidaste tu PIN? Recuperarlo por correo</button>
+        <p className="text-xs leading-5 text-muted-foreground">El correo permite confirmar la identidad y recuperar el acceso. No utilizamos SMS.</p>
+      </div>
     </div>
   </section>;
 }
@@ -240,6 +245,7 @@ function TrasladosWeb() {
   const session=useCustomerSession();
   const [view,setView]=useState<View>("inicio"),[wanted,setWanted]=useState<"reserva"|"historial">("reserva");
   const [valid,setValid]=useState<string|null>(null),[sent,setSent]=useState(""),[previous,setPrevious]=useState<OpReservation|null>(null);
+  useEffect(()=>{const flow = new URLSearchParams(window.location.search).get("auth_email"); if(flow==="registro" || flow==="recuperar") setView(flow);},[]);
   useEffect(()=>{if(!session?.token){setValid(null);return;}let active=true;getProfile(session.token).then(p=>{if(!active)return;if(p)setValid(session.token);else{writeSession(null);setValid(null);setView("acceso");}}).catch(()=>{if(active)toast.error("No pudimos validar tu sesión con el servidor.");});return()=>{active=false;};},[session?.token]);
   const signed=Boolean(session&&session.token===valid);
   function go(v:View){if(v==="reserva")setPrevious(null);if((v==="reserva"||v==="historial")&&!signed){setWanted(v);setView("acceso");}else setView(v);if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}
@@ -247,9 +253,10 @@ function TrasladosWeb() {
   return <main className="min-h-screen overflow-x-hidden">
     <Header go={go} name={signed?session?.customer.full_name:undefined}/>
     {view==="inicio"&&<Home go={go}/>}
-    {view==="acceso"&&(signed?<section className="mx-auto max-w-lg px-5 py-16 text-center"><CheckCircle2 className="mx-auto size-12 text-success"/><h1 className="mt-4 font-display text-2xl">Sesión iniciada</h1><p className="mt-3 text-sm text-muted-foreground">{session?.customer.full_name}</p><div className="mt-6 flex justify-center gap-2"><Button onClick={()=>go("historial")}>Mis viajes</Button><Button variant="outline" onClick={()=>go("reserva")}>Reservar</Button></div><Button variant="ghost" className="mt-6" onClick={()=>{if(session)void logout(session.token);setValid(null);setView("inicio");}}><LogOut className="mr-2 size-4"/> Cerrar sesión</Button></section>:<Access success={onAccess}/>)}
-    {view==="reserva"&&(signed?<Booking key={previous?.id??"new"} previous={previous} token={session!.token} customer={session!.customer.full_name} onSent={code=>{setSent(code);setPrevious(null);setView("enviada");}}/>:<Access success={()=>setView("reserva")}/>)}
-    {view==="historial"&&(signed?<HistoryView token={session!.token} go={go} onRepeat={r=>{setPrevious(r);setView("reserva");if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}}/>:<Access success={()=>setView("historial")}/>)}
+    {(view==="registro" || view==="recuperar") && <EmailAccess key={view} action={view} onDone={()=>setView(wanted)} onBack={()=>setView("acceso")}/>}
+    {view==="acceso"&&(signed?<section className="mx-auto max-w-lg px-5 py-16 text-center"><CheckCircle2 className="mx-auto size-12 text-success"/><h1 className="mt-4 font-display text-2xl">Sesión iniciada</h1><p className="mt-3 text-sm text-muted-foreground">{session?.customer.full_name}</p><div className="mt-6 flex justify-center gap-2"><Button onClick={()=>go("historial")}>Mis viajes</Button><Button variant="outline" onClick={()=>go("reserva")}>Reservar</Button></div><Button variant="ghost" className="mt-6" onClick={()=>{if(session)void logout(session.token);setValid(null);setView("inicio");}}><LogOut className="mr-2 size-4"/> Cerrar sesión</Button></section>:<Access success={onAccess} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
+    {view==="reserva"&&(signed?<Booking key={previous?.id??"new"} previous={previous} token={session!.token} customer={session!.customer.full_name} onSent={code=>{setSent(code);setPrevious(null);setView("enviada");}}/>:<Access success={()=>setView("reserva")} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
+    {view==="historial"&&(signed?<HistoryView token={session!.token} go={go} onRepeat={r=>{setPrevious(r);setView("reserva");if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}}/>:<Access success={()=>setView("historial")} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
     {view==="enviada"&&<section className="mx-auto max-w-lg px-5 py-20 text-center"><CheckCircle2 className="mx-auto size-16 text-success"/><h1 className="mt-5 font-display text-3xl">Solicitud recibida</h1><p className="mt-3 text-sm text-muted-foreground">Queda pendiente de confirmación del conductor.</p><div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-5"><p className="text-xs uppercase tracking-[.2em] text-primary">Código de reserva</p><p className="mt-2 font-display text-3xl font-semibold">{sent}</p></div><Button className="mt-7 h-12 w-full" onClick={()=>go("historial")}>Ver mis traslados</Button></section>}
     <footer className="border-t border-border/60 bg-[#0d2026]">
       <div className="mx-auto grid max-w-6xl gap-7 px-5 py-10 sm:grid-cols-3 sm:px-8">
