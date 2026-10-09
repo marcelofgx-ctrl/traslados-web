@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  passkeysAvailable, registerWithPasskey, recoverWithBackup, addPasskeyToAccount,
+  passkeysAvailable, registerWithPasskey, recoverWithBackup, addPasskeyToAccount, resetPinWithPasskey,
 } from "@/lib/operativa/passkeys";
 
 type Mode = "registro" | "recuperacion" | "vincular";
@@ -22,6 +22,7 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
   const [backup,setBackup]=useState("");
   const [recovery,setRecovery]=useState("");
   const [saved,setSaved]=useState(false);
+  const [recoveryMethod,setRecoveryMethod]=useState<"huella"|"codigo">("huella");
 
   useEffect(()=>{let active=true;void passkeysAvailable().then(x=>{if(active){setEnabled(x);setChecking(false);}});return()=>{active=false;};},[]);
   async function submit(event:FormEvent) {
@@ -33,7 +34,7 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
     if(mode==="registro" && (name.trim().length<2||phone.replace(/\D/g,"").length<8)){
       setError("Ingresá nombre y celular uruguayo.");return;
     }
-    if(mode==="recuperacion" && recovery.trim().length<30) {
+    if(mode==="recuperacion" && recoveryMethod==="codigo" && recovery.trim().length<30) {
       setError("Ingresá el código de recuperación que guardaste al registrarte.");return;
     }
     setBusy(true);
@@ -46,6 +47,9 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
         const result=await addPasskeyToAccount(sessionToken);
         if(!result.recoveryCode) throw new Error("No se generó el código de recuperación");
         setBackup(result.recoveryCode);
+      } else if(recoveryMethod==="huella"){
+        await resetPinWithPasskey(pin);
+        onDone();
       } else {
         const result=await recoverWithBackup(phone,recovery.trim(),pin);
         setBackup(result.recoveryCode);
@@ -69,7 +73,7 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
       </h1>
       <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">
         {mode==="registro"?"Registrá una llave de acceso protegida por tu celular y elegí un PIN alternativo."
-         :mode==="recuperacion"?"Usá tu código de respaldo para elegir un PIN nuevo y generar otro código."
+         :mode==="recuperacion"?"Si conservás tu passkey, verificá tu identidad con huella. Si la perdiste, usá tu código de respaldo."
          :"Asociá la huella o el bloqueo de este dispositivo a tu cuenta actual."}
       </p>
       {backup? <div className="mt-7 space-y-4">
@@ -90,10 +94,14 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
         <Button type="button" onClick={onBack} variant="outline" className="mt-4 w-full">Volver al acceso habitual</Button>
       </div> :
       <form onSubmit={e=>void submit(e)} className="mt-7 space-y-4">
+        {mode==="recuperacion" && <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary/20 p-1">
+          <button type="button" onClick={()=>setRecoveryMethod("huella")} className={"min-h-11 rounded-lg text-sm font-medium "+(recoveryMethod==="huella"?"bg-primary text-primary-foreground":"text-muted-foreground")}><Fingerprint className="mr-1 inline size-4"/> Con huella</button>
+          <button type="button" onClick={()=>setRecoveryMethod("codigo")} className={"min-h-11 rounded-lg text-sm font-medium "+(recoveryMethod==="codigo"?"bg-primary text-primary-foreground":"text-muted-foreground")}><KeyRound className="mr-1 inline size-4"/> Con código</button>
+        </div>}
         {mode!=="vincular" && <>
           {mode==="registro"&&<div className="space-y-2"><Label htmlFor="pk-name">Nombre y apellido</Label><Input id="pk-name" required value={name} autoComplete="name" onChange={e=>setName(e.target.value)} placeholder="Nombre y apellido" className="h-12"/></div>}
-          <div className="space-y-2"><Label htmlFor="pk-phone">Celular de Uruguay</Label><Input id="pk-phone" required value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel" placeholder="099 123 456" className="h-12"/></div>
-          {mode==="recuperacion"&&<div className="space-y-2"><Label htmlFor="pk-recovery">Código de recuperación</Label><Input id="pk-recovery" required value={recovery} onChange={e=>setRecovery(e.target.value)} autoComplete="off" placeholder="Pegá tu código de respaldo" className="h-12"/></div>}
+          {(mode==="registro"||recoveryMethod==="codigo") && <div className="space-y-2"><Label htmlFor="pk-phone">Celular de Uruguay</Label><Input id="pk-phone" required value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel" placeholder="099 123 456" className="h-12"/></div>}
+          {mode==="recuperacion"&&recoveryMethod==="codigo"&&<div className="space-y-2"><Label htmlFor="pk-recovery">Código de recuperación</Label><Input id="pk-recovery" required value={recovery} onChange={e=>setRecovery(e.target.value)} autoComplete="off" placeholder="Pegá tu código de respaldo" className="h-12"/></div>}
           <div className="space-y-2"><Label htmlFor="pk-pin">PIN de 6 dígitos</Label><Input id="pk-pin" required type="password" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" autoComplete="new-password" value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))} placeholder="••••••" className="h-12"/></div>
           <div className="space-y-2"><Label htmlFor="pk-repeat">Confirmá el PIN</Label><Input id="pk-repeat" required type="password" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" autoComplete="new-password" value={repeat} onChange={e=>setRepeat(e.target.value.replace(/\D/g,""))} placeholder="••••••" className="h-12"/></div>
         </>}
@@ -102,7 +110,7 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
         {error&&<p role="alert" className="rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning">{error}</p>}
         <Button type="submit" className="h-12 w-full" disabled={busy}>
           {mode==="recuperacion"?<LockKeyhole className="mr-2 size-4"/>:<Fingerprint className="mr-2 size-4"/>}
-          {busy?"Validando dispositivo…":mode==="registro"?"Crear cuenta con huella":mode==="recuperacion"?"Restablecer PIN":"Activar huella"}
+          {busy?"Validando dispositivo…":mode==="registro"?"Crear cuenta con huella":mode==="recuperacion"?(recoveryMethod==="huella"?"Cambiar PIN con huella":"Recuperar con código"):"Activar huella"}
         </Button>
         <p className="text-center text-xs leading-5 text-muted-foreground">
           La biometría se verifica en el dispositivo. Traslados solo almacena una llave pública, nunca tu huella.
