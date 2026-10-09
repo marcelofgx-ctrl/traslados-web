@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowRight, CalendarDays, CarFront, CheckCircle2, ChevronDown, ChevronUp, Fingerprint,
   Clock3, History, LogOut, MapPin, Minus, MoveDown, MoveUp,
@@ -115,6 +115,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   const [date,setDate]=useState(()=>mvdNow().date),[time,setTime]=useState(""),[passengers,setPassengers]=useState(1);
   const [origin,setOrigin]=useState<Loc|null>(previous?{text:previous.origin_text,lat:previous.origin_lat,lng:previous.origin_lng,department:previous.origin_department??null}:null),[destination,setDestination]=useState<Loc|null>(previous?{text:previous.destination_text,lat:previous.destination_lat,lng:previous.destination_lng,department:previous.destination_department??null}:null);
   const [stops,setStops]=useState<Stop[]>(()=>previous?.stops?.map((x,i)=>({id:i+1,value:{text:x.address_text,lat:x.lat,lng:x.lng,department:x.department}}))??[]),[nextId,setNextId]=useState((previous?.stops?.length??0)+1);
+  const routeStops=useMemo(()=>stops.map(s=>s.value).filter((s):s is Loc=>Boolean(s)),[stops]);
   const [comments,setComments]=useState(""),[forOther,setForOther]=useState(Boolean(previous?.passenger_name)),[otherName,setOtherName]=useState(previous?.passenger_name??""),[otherPhone,setOtherPhone]=useState(previous?.passenger_phone??"");
   const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false);
   const [availableRevision,setAvailableRevision]=useState(0);
@@ -190,7 +191,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         {forOther&&<Detail label="Viaja" value={otherName+" · "+otherPhone}/>}
         {comments&&<Detail label="Comentarios" value={comments}/>}
       </div></Panel>
-      <RoutePreview origin={origin} destination={destination} stops={stops.map(s=>s.value).filter((s):s is Loc=>Boolean(s))} compact/>
+      <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
       <div className="premium-glass rounded-2xl border border-primary/25 p-4">
         <p className="text-sm font-semibold text-[#f2dfb9]">Presupuesto personalizado · pendiente de revisión</p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">Enviarás una solicitud, no un pago. El conductor revisará itinerario, distancia por carretera y disponibilidad, y luego podrás aceptar o rechazar el presupuesto desde Mis traslados.</p>
@@ -214,7 +215,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
         <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
       </div></Panel>
-      <RoutePreview origin={origin} destination={destination} stops={stops.map(s=>s.value).filter((s):s is Loc=>Boolean(s))} compact/>
+      <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
       <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
         onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
       {scheduleMessage&&<div role="alert" className="rounded-xl border border-amber-400/35 bg-amber-400/10 p-4">
