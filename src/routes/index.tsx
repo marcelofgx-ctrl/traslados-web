@@ -237,17 +237,17 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         <div><Label>Pasajeros</Label><div className="mt-2 flex items-center gap-4"><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button><strong className="text-lg">{passengers}</strong><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button><Users className="size-4 text-muted-foreground"/></div></div>
       </div></Panel>
       <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-6">
-        <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={setOrigin}/>
+        <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={v=>{setOrigin(v);selectHour("");}}/>
         {stops.map((s,i)=><div key={s.id} className="border-t border-border pt-5">
           <div className="mb-2 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[.15em] text-primary">Parada intermedia {i+1}</p><div className="flex items-center gap-1">
-            <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===0} aria-label="Subir parada" onClick={()=>shift(i,-1)}><MoveUp className="size-4"/></button>
-            <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===stops.length-1} aria-label="Bajar parada" onClick={()=>shift(i,1)}><MoveDown className="size-4"/></button>
-            <button type="button" className="rounded-lg p-2 text-warning" aria-label="Eliminar parada" onClick={()=>setStops(v=>v.filter(x=>x.id!==s.id))}><Minus className="size-4"/></button>
+            <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===0} aria-label="Subir parada" onClick={()=>{shift(i,-1);selectHour("");}}><MoveUp className="size-4"/></button>
+            <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===stops.length-1} aria-label="Bajar parada" onClick={()=>{shift(i,1);selectHour("");}}><MoveDown className="size-4"/></button>
+            <button type="button" className="rounded-lg p-2 text-warning" aria-label="Eliminar parada" onClick={()=>{setStops(v=>v.filter(x=>x.id!==s.id));selectHour("");}}><Minus className="size-4"/></button>
           </div></div>
-          <UyLocationPicker id={"stop-"+s.id} label="Dirección de parada" value={s.value} onChange={loc=>setStops(v=>v.map(x=>x.id===s.id?{...x,value:loc}:x))}/>
+          <UyLocationPicker id={"stop-"+s.id} label="Dirección de parada" value={s.value} onChange={loc=>{setStops(v=>v.map(x=>x.id===s.id?{...x,value:loc}:x));selectHour("");}}/>
         </div>)}
-        <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
-        <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={setDestination}/></div>
+        <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
+        <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
       </div></Panel>
       <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
         onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
