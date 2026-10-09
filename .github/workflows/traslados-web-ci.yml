@@ -34,11 +34,10 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
-      - name: Comprobar TypeScript
-        run: bunx tsc --noEmit
-        continue-on-error: true
       - name: Compilar web sin Lovable
         run: bun run build
+      - name: Comprobar TypeScript estrictamente
+        run: bunx tsc --noEmit
       - name: Prueba HTTP local del Worker
         shell: bash
         run: |
