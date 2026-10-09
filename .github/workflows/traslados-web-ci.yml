@@ -58,6 +58,15 @@ jobs:
           fi
           grep -q 'Cada viaje' /tmp/traslados-index.html || { echo "Falta contenido home"; head -c 500 /tmp/traslados-index.html; exit 1; }
           echo "SSR HTTP 200: la portada responde correctamente."
+          pk="$(curl -fsS http://127.0.0.1:8787/api/auth/passkey)"
+          echo "$pk" | grep -q '"enabled":false' || { echo "Passkey debe estar desactivado sin secretos"; exit 1; }
+          denied="$(curl -sS -o /tmp/passkey-response.json -w '%{http_code}' \
+            -H 'Origin: http://127.0.0.1:8787' \
+            -H 'Content-Type: application/json' \
+            --data '{"step":"authenticate-options"}' \
+            http://127.0.0.1:8787/api/auth/passkey)"
+          [ "$denied" = 403 ] || { cat /tmp/passkey-response.json; echo "Protección de origen falló: $denied"; exit 1; }
+          echo "Passkey bloqueado sin claves e impide llamadas desde origen no permitido."
       - name: Guardar artefacto de compilación
         if: success()
         uses: actions/upload-artifact@v4
