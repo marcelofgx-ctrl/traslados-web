@@ -15,6 +15,7 @@ import { UyLocationPicker } from "@/components/UyLocationPicker";
 import { TimeSelect24 } from "@/components/TimeSelect24";
 import { PasskeyAccess } from "@/components/PasskeyAccess";
 import { CustomerTripHistory } from "@/components/CustomerTripHistory";
+import { CustomerShareTools } from "@/components/CustomerShareTools";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, createReservation, getProfile,
@@ -98,6 +99,7 @@ function Home({go}:{go:(v:View)=>void}) {
         ].map(s=><div key={s.title} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary/45"><span className="flex size-12 items-center justify-center rounded-xl bg-primary/10"><s.icon className="size-6 text-primary"/></span><h3 className="mt-5 font-display text-lg">{s.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{s.desc}</p></div>)}
       </div>
       <div className="mt-12 flex flex-col items-center justify-between gap-5 rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center sm:flex-row sm:text-left"><div><h3 className="font-display text-xl">¿Querés coordinar algo especial?</h3><p className="mt-2 text-sm text-muted-foreground">Hablemos directamente por WhatsApp.</p></div><a href={WHATSAPP} target="_blank" rel="noreferrer" className={buttonBase+" shrink-0 border border-primary/40 bg-primary/15 text-primary"}><Phone className="size-4"/> Contactar</a></div>
+      <CustomerShareTools/>
     </section>
   </>;
 }
