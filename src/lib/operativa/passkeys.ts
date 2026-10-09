@@ -74,3 +74,13 @@ export async function recoverWithBackup(phone:string,recoveryCode:string,newPin:
   if (!result.recoveryCode) throw new Error("No se generó una nueva clave de recuperación");
   return {session,recoveryCode:result.recoveryCode};
 }
+
+/** Nueva firma WebAuthn de presencia local antes de modificar el PIN. */
+export async function resetPinWithPasskey(pin: string) {
+  if (!/^\d{6}$/.test(pin)) throw new Error("El PIN debe tener seis números");
+  if (!passkeysSupported()) throw new Error("Este dispositivo no admite llaves de acceso");
+  const start = await api({step:"authenticate-options"}) as PasskeyOptions;
+  const response = await startAuthentication({optionsJSON:start.options});
+  const result = await api({step:"reset-pin-verify",challengeId:start.challengeId,credential:response,pin}) as ResponseData;
+  return saveSession(result.session);
+}
