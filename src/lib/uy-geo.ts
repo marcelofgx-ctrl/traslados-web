@@ -1,3 +1,4 @@
+import { localUyPlaces } from "./uy-places";
 // Búsqueda de direcciones de Uruguay con la API pública oficial IDE Uruguay
 // (https://direcciones.ide.uy). Permite CORS, por eso se llama directo desde el navegador.
 
@@ -113,7 +114,10 @@ async function fetchCandidates(q: string, signal?: AbortSignal) {
   const key = norm(q);
   const hit = cache.get(key);
   if (hit) return hit;
-  const res = await fetch(`${BASE}/candidates?limit=15&q=${encodeURIComponent(q)}`, { signal: signal ?? null });
+  const res = await fetch(`${BASE}/candidates?limit=18&q=${encodeURIComponent(q)}`, {
+    signal: signal ?? null,
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) throw new Error("El servicio de direcciones no respondió");
   const raw = (await res.json()) as IdeItem[];
   const seen = new Set<string>();
@@ -130,18 +134,41 @@ async function fetchCandidates(q: string, signal?: AbortSignal) {
 }
 
 /**
- * Busca sugerencias. Con departamento elegido, prioriza ese departamento; si no hay
- * coincidencias allí, devuelve resultados de todo Uruguay (widened=true).
+ * Búsqueda rápida: una única llamada IDE para TODO URUGUAY.
+ * Evita encadenar la búsqueda de departamento con otra nacional, que podía
+ * duplicar la latencia en Canelones y ocultar POIs conocidos como Carrasco.
+ * El departamento se usa para ordenar, nunca para excluir resultados de Uruguay.
  */
 export async function searchUy(query: string, dept: string, signal?: AbortSignal) {
   const q = query.trim();
-  if (q.length < 3) return { items: [] as UySuggestion[], widened: false };
-  if (dept === ALL_URUGUAY) return { items: (await fetchCandidates(q, signal)).slice(0, 8), widened: false };
-  const scoped = await fetchCandidates(`${q}, ${dept}`, signal);
-  const inDept = scoped.filter((s) => s.department === dept);
-  if (inDept.length > 0) return { items: inDept.slice(0, 8), widened: false };
-  const all = await fetchCandidates(q, signal);
-  return { items: all.slice(0, 8), widened: all.length > 0 };
+  const local = localUyPlaces(q,dept);
+  if (q.length < 3) return { items: local, widened: false };
+  // Los lugares muy conocidos tienen respuesta inmediata incluso con IDE lento.
+  const wellKnown = /^(aeropuerto|aeropuerto de carrasco|aeropuerto carrasco|mvd|pdp|carrasco internacional|terminal aeropuerto|aeropuerto canelones)$/i.test(norm(q));
+  if(wellKnown && local.length) return {items:local,widened:false};
+  try {
+    const remote = await fetchCandidates(q,signal);
+    const inCountry = remote.filter(x =>
+      (x.lat===null || x.lng===null || inUruguay(x.lat,x.lng)) &&
+      (!x.department || DEPARTMENTS.some(d=>d.id===x.department))
+    );
+    const sorted = [...inCountry].sort((a,b)=>
+      Number(b.department===dept)-Number(a.department===dept) ||
+      (a.kind==="LUGAR"?-1:0)-(b.kind==="LUGAR"?-1:0)
+    );
+    const seen = new Set(local.map(x=>norm(x.full)));
+    const rest = sorted.filter(x=>{
+      const key=norm(x.full);
+      if(seen.has(key))return false;
+      seen.add(key);return true;
+    });
+    return {items:[...local,...rest].slice(0,10),widened:dept!==ALL_URUGUAY && local.length===0 &&
+      sorted.length>0 && !sorted.some(x=>x.department===dept)};
+  } catch(e) {
+    if(signal?.aborted)throw e;
+    if(local.length)return {items:local,widened:false};
+    throw e;
+  }
 }
 
 /** Obtiene coordenadas exactas de una sugerencia (las calles vienen sin coordenadas). */
