@@ -25,6 +25,16 @@ function serverConfig(request: Request) {
   if (!key) throw new ApiError("Falta configurar la autenticación del servidor", 503);
   const db = createClient(OPERATIVE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: {
+      fetch: (input, init) => {
+        const headers = new Headers(init?.headers);
+        if (key.startsWith("sb_secret_") && headers.get("Authorization") === "Bearer " + key) {
+          headers.delete("Authorization");
+        }
+        headers.set("apikey", key);
+        return fetch(input, { ...init, headers });
+      },
+    },
   });
   return { origin, rpID: new URL(origin).hostname, db };
 }
@@ -117,11 +127,12 @@ export async function passkeyHandler(request:Request, body:Body) {
       p_backed_up:credentialBackedUp,
     };
     if(pending.customer_id) {
+      const recoveryCode=randomSecret(32);
       const {data,error}=await db.rpc("customer_passkey_add_v14",{
-        p_session_token:body.sessionToken,...metadata,
+        p_session_token:body.sessionToken,p_recovery_code:recoveryCode,...metadata,
       });
       failDb(error,"No pudimos asociar la huella a tu cuenta");
-      return {ok:Boolean(data),added:true};
+      return {ok:Boolean(data),added:true,recoveryCode};
     }
     const name=validString(body.name,2,120),phone=validString(body.phone,8,22);
     const pin=validString(body.pin,6,6);
