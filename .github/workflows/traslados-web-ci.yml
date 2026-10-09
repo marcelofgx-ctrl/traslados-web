@@ -35,7 +35,7 @@ jobs:
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
       - name: Pruebas seguridad origen WebAuthn
-        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/uy-pois.test.ts
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
       - name: Compilar web sin Lovable
         run: bun run build
       - name: Comprobar TypeScript estrictamente
@@ -81,6 +81,17 @@ jobs:
           grep -q 'Nos reencontramos' /tmp/traslados-offline.html || { echo "La página offline no se entregó correctamente"; exit 1; }
           curl -fsS http://127.0.0.1:8787/manifest.webmanifest | grep -q '"standalone"' || { echo "Falta manifiesto instalable"; exit 1; }
           echo "PWA: manifiesto, iconos y página offline validados."
+          curl -fsSL 'http://127.0.0.1:8787/data/uy-pois.json' -o /tmp/uy-pois-ci.json
+          python - <<'PY'
+          import json
+          with open("/tmp/uy-pois-ci.json",encoding="utf-8") as file:
+              places=json.load(file)["items"]
+          assert len(places)>5000, "Índice incompleto"
+          found=[p for p in places if "punta carretas shopping" in p[1].lower() and p[4]=="MONTEVIDEO"]
+          assert found, "No se encontró Punta Carretas Shopping en el índice OSM real"
+          print("Índice HTTP: ",len(places),"POIs. Punta Carretas Shopping:",len(found))
+          PY
+
           pk="$(curl -fsS http://127.0.0.1:8787/api/auth/passkey)"
           echo "$pk" | grep -q '"enabled":false' || { echo "Passkey debe estar desactivado sin secretos"; exit 1; }
           denied="$(curl -sS -o /tmp/passkey-response.json -w '%{http_code}' \

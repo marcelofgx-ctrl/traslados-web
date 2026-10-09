@@ -8,6 +8,7 @@ import {
 import type { Loc } from "@/lib/operativa/api";
 import { localUyPlaces, URUGUAY_PLACES } from "@/lib/uy-places";
 import { combineUySuggestions } from "@/lib/uy-poi";
+import { searchOsmPlaces } from "@/lib/uy-osm-index";
 
 const MapPicker = lazy(() => import("@/components/MapPicker"));
 
@@ -45,19 +46,21 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
     setMessage("");
     if (query.trim().length < 3) return () => controller.abort();
     const timeout = window.setTimeout(() => {
-      // Dos fuentes en paralelo: actualizar a medida que llega cada una,
+      // Tres fuentes en paralelo: direcciones IDE, lugares Geoapify y
+      // comercios/POIs OSM de Uruguay que se indexan automáticamente.
       // sin esperar a que termine la más lenta ni borrar destinos locales.
       let postal: UySuggestion[]=[];
       let named: UySuggestion[]=[];
+      let localIndex: UySuggestion[]=[];
       let finished=0;
       let widened=false;
       const update=()=>{
         if(controller.signal.aborted||rid!==requestId.current)return;
-        const merged=combineUySuggestions(immediate,named,postal,query);
+        const merged=combineUySuggestions(immediate,[...localIndex,...named],postal,query);
         setSuggestions(merged);
         setWidened(widened);
-        setBusy(finished<2 && merged.length===0);
-        if(finished===2 && !merged.length){
+        setBusy(finished<3 && merged.length===0);
+        if(finished===3 && !merged.length){
           setMessage("No encontramos ese lugar. Probá con el nombre completo, su calle o señalalo en el mapa.");
         }else if(merged.length)setMessage("");
       };
@@ -81,9 +84,15 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
         }catch{/* Sin cuota/configuración, se conserva el buscador oficial. */}
         finally{finished++;update();}
       };
+      const byOsm=async()=>{
+        try {localIndex=await searchOsmPlaces(query,department);}
+        catch {/* Mantener operativos IDE y Geoapify aun si falla el índice. */}
+        finally{finished++;update();}
+      };
       setBusy(immediate.length===0);
       void byAddress();
       void byPlaces();
+      void byOsm();
     }, 260);
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [query, department, value]);
@@ -203,6 +212,8 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
               ))}
             </div>
           )}
+          {suggestions.some(s=>s.id.startsWith("osm-"))&&
+            <p className="mt-1 px-1 text-[10px] text-muted-foreground">Lugares: © <a className="underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · Posición de referencia ajustable.</p>}
         </div>
       )}
       {!value && query.trim().length<2 && <div className="flex flex-wrap items-center gap-2">
