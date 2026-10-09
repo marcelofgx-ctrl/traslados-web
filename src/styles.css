@@ -316,3 +316,37 @@
     transition-duration:.01ms!important;
   }
 }
+
+
+/* Traslados premium v16.4: contraste alto para móviles y recorrido compacto */
+.booking-quick-summary {
+  background:
+    radial-gradient(ellipse at 90% 0%,rgba(214,180,103,.12),transparent 50%),
+    linear-gradient(142deg,#193c40,#0d272e 78%);
+  box-shadow:inset 0 1px 0 rgba(248,220,170,.07),0 15px 30px rgba(0,0,0,.2);
+}
+.booking-selected-place {
+  background:linear-gradient(120deg,rgba(32,72,73,.65),rgba(14,43,46,.9));
+  transition:border-color .2s ease;
+}
+.booking-selected-place:hover,.booking-selected-place:focus-visible {
+  border-color:#dbbb7d;
+  outline-offset:3px;
+}
+.premium-hero .premium-gold-text {
+  color:#edc881;
+  -webkit-text-fill-color:#edc881;
+  background-image:none;
+  text-shadow:0 2px 26px rgba(228,177,83,.12);
+}
+.premium-primary-button {
+  color:#132b30!important;
+  background:#e9c781!important;
+  border:1px solid rgba(255,228,167,.6)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px rgba(0,0,0,.2)!important;
+}
+.premium-primary-button:hover { background:#f1d392!important; }
+@media(max-width:639px) {
+  .premium-home .premium-service-card { padding:1.1rem; }
+  .booking-quick-summary { padding:14px; }
+}
