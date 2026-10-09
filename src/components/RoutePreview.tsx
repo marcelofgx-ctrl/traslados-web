@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { googleMapsRoute,useRoadEstimate } from "@/lib/use-road-estimate";
 import { ArrowDown, ChevronDown, ChevronRight, Compass, MapPinned, Route as RouteIcon, ShieldCheck } from "lucide-react";
 import type { Map as LeafletMap, LatLngExpression } from "leaflet";
 import type { Loc } from "@/lib/operativa/api";
-import { encodeRoadPoints, type RoadRoute } from "@/lib/road-route";
 import { ExternalLink, CarFront, Clock3, Loader2 } from "lucide-react";
 
 type Props={origin:Loc|null;destination:Loc|null;stops:Loc[];compact?:boolean};
-const roadCache=new Map<string,RoadRoute>();
-function mapsRouteUrl(p:Loc[]){
- const first=p[0]!,last=p[p.length-1]!;
- const q=new URLSearchParams({api:"1",origin:first.lat+","+first.lng,destination:last.lat+","+last.lng,travelmode:"driving"});
- if(p.length>2)q.set("waypoints",p.slice(1,-1).map(s=>s.lat+","+s.lng).join("|"));
- return "https://www.google.com/maps/dir/?"+q.toString();
-}
 const points=(o:Loc|null,s:Loc[],d:Loc|null)=>[o,...s,d].filter((x):x is Loc=>Boolean(x && Number.isFinite(x.lat)&&Number.isFinite(x.lng)));
 function straightKm(a:Loc,b:Loc){
   const rad=Math.PI/180,p1=a.lat*rad,p2=b.lat*rad,dp=(b.lat-a.lat)*rad,dl=(b.lng-a.lng)*rad;
@@ -23,37 +16,8 @@ export function RoutePreview({origin,destination,stops,compact=false}:Props){
   const [open,setOpen]=useState(!compact);
   const route=useMemo(()=>points(origin,stops,destination),[origin,stops,destination]);
   const direct=route.length>1?route.slice(1).reduce((n,p,i)=>n+straightKm(route[i]!,p),0):null;
-  const routeKey=route.length>1?encodeRoadPoints(route):"";
-  const [road,setRoad]=useState<RoadRoute|null>(null);
-  const [loadedKey,setLoadedKey]=useState("");
-  const [working,setWorking]=useState(false);
-  useEffect(()=>{
-    const controller=new AbortController();
-    setLoadedKey("");setRoad(null);
-    if(!routeKey){setWorking(false);return()=>controller.abort();}
-    const cached=roadCache.get(routeKey);
-    if(cached){setRoad(cached);setLoadedKey(routeKey);setWorking(false);return()=>controller.abort();}
-    setWorking(true);
-    const timer=window.setTimeout(async ()=>{
-      try{
-        const res=await fetch("/api/public/route-estimate?points="+encodeURIComponent(routeKey),{
-          signal:controller.signal,headers:{"Accept":"application/json"},
-        });
-        if(!controller.signal.aborted && res.ok){
-          const result=await res.json() as RoadRoute;
-          if(result.available && Number.isFinite(result.distanceKm)){
-            roadCache.set(routeKey,result);
-            if(roadCache.size>75)roadCache.clear();
-            setRoad(result);
-          }
-        }
-      }catch{/* Fallback to Google Maps if routing provider is unavailable. */}
-      finally{if(!controller.signal.aborted){setWorking(false);setLoadedKey(routeKey);}}
-    },450);
-    return()=>{window.clearTimeout(timer);controller.abort();};
-  },[routeKey]);
-  const result=loadedKey===routeKey?road:null;
-  const mapsUrl=route.length>1?mapsRouteUrl(route):null;
+  const {route:result,loading:working}=useRoadEstimate(route);
+  const mapsUrl=googleMapsRoute(route);
   const description=(i:number)=>i===0?"Origen":i===route.length-1?"Destino":"Parada "+i;
   return <section className="premium-glass overflow-hidden rounded-2xl border border-primary/25">
     <button type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open}
