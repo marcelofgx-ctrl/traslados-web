@@ -6,6 +6,16 @@ import type { UySuggestion } from "./uy-geo";
  */
 export const URUGUAY_PLACES: Array<UySuggestion & { aliases: string[] }> = [
   {
+    id:"uy-poi-plaza-italia-shopping",kind:"LUGAR",
+    main:"Plaza Italia Shopping Outlet",
+    secondary:"Av. Italia 4250 · Malvín, Montevideo",
+    full:"Plaza Italia Shopping Outlet, Avenida Italia 4250, Malvín, Montevideo, Uruguay",
+    department:"MONTEVIDEO",lat:-34.8880329,lng:-56.1204892,
+    aliases:["plaza italia","plaza italia shopping","shopping plaza italia",
+      "plaza italia outlet","italia shopping","shopping italia",
+      "av italia 4250","avenida italia 4250","sodimac plaza italia"],
+  },
+  {
     id: "uy-poi-mvd-terminal", kind: "LUGAR",
     main: "Aeropuerto Internacional de Carrasco · Terminal de pasajeros",
     secondary: "Paso Carrasco, Canelones · Aeropuerto MVD",
