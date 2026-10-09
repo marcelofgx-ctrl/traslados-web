@@ -60,6 +60,13 @@ jobs:
           fi
           grep -q 'Cada viaje' /tmp/traslados-index.html || { echo "Falta contenido home"; head -c 500 /tmp/traslados-index.html; exit 1; }
           echo "SSR HTTP 200: la portada responde correctamente."
+          # Recursos de la PWA que antes faltaban en la web migrada.
+          for asset in /manifest.webmanifest /icons/icon-192.png /icons/icon-512.png /icon.svg /offline.html; do
+            code="$(curl -s -o /tmp/traslados-asset -w '%{http_code}' --max-time 5 "http://127.0.0.1:8787$asset")"
+            [ "$code" = "200" ] || { echo "Recurso PWA inválido: $asset ($code)"; exit 1; }
+          done
+          curl -fsS http://127.0.0.1:8787/manifest.webmanifest | grep -q '"standalone"' || { echo "Falta manifiesto instalable"; exit 1; }
+          echo "PWA: manifiesto, iconos y pantalla offline responden HTTP 200."
           pk="$(curl -fsS http://127.0.0.1:8787/api/auth/passkey)"
           echo "$pk" | grep -q '"enabled":false' || { echo "Passkey debe estar desactivado sin secretos"; exit 1; }
           denied="$(curl -sS -o /tmp/passkey-response.json -w '%{http_code}' \
