@@ -26,6 +26,10 @@ export type OpReservation = {
   destination_lat: number;
   destination_lng: number;
   created_at: string;
+  updated_at?: string | null;
+  quote_sent_at?: string | null;
+  quote_accepted_at?: string | null;
+  confirmed_at?: string | null;
   quote_status?: string | null;
   quote_final_total?: number | null;
   quote_includes?: string | null;

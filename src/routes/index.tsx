@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowRight, CalendarDays, CarFront, CheckCircle2, ChevronDown, ChevronUp, Fingerprint,
   Clock3, History, LogOut, MapPin, Minus, MoveDown, MoveUp,
@@ -15,7 +15,8 @@ import { UyLocationPicker } from "@/components/UyLocationPicker";
 import { BookingAvailability } from "@/components/BookingAvailability";
 import { PasskeyAccess } from "@/components/PasskeyAccess";
 import { CustomerTripHistory } from "@/components/CustomerTripHistory";
-import { CustomerShareTools } from "@/components/CustomerShareTools";
+import { PremiumHome } from "@/components/PremiumHome";
+import { RoutePreview } from "@/components/RoutePreview";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, AVAILABILITY_REASON, checkAvailability, createReservation, getProfile,
@@ -45,12 +46,12 @@ function errorText(e:unknown) {
 }
 function Detail({ label, value }: {label:string,value:string}) { return <div className="flex flex-col gap-1 border-b border-border/70 pb-2 text-sm last:border-0 sm:flex-row sm:gap-4"><span className="shrink-0 text-muted-foreground sm:w-28">{label}</span><span className="break-words font-medium">{value}</span></div>; }
 function Panel({ title, icon, children }: {title:string,icon:ReactNode,children:ReactNode}) {
-  return <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-[0_16px_38px_rgba(0,0,0,.09)] sm:p-6">
+  return <div className="premium-glass rounded-2xl border border-primary/20 p-4 shadow-[0_16px_38px_rgba(0,0,0,.10)] sm:p-6">
     <div className="mb-5 flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><h2 className="font-display text-lg font-semibold">{title}</h2></div>{children}
   </div>;
 }
 function Header({ go, name }:{go:(v:View)=>void,name?:string|undefined}) {
-  return <header className="sticky top-0 z-30 border-b border-primary/10 bg-[#12292e]/95 backdrop-blur-xl">
+  return <header className="premium-topbar sticky top-0 z-30 border-b border-primary/15 bg-[#12292e]/95 backdrop-blur-xl">
     <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-7">
       <button onClick={()=>go("inicio")} className="flex min-w-0 items-center gap-2 text-left sm:gap-3" aria-label="Inicio de Traslados">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 sm:size-11"><Navigation2 className="size-5 rotate-45 text-primary sm:size-6"/></span>
@@ -59,53 +60,13 @@ function Header({ go, name }:{go:(v:View)=>void,name?:string|undefined}) {
       <div className="flex items-center gap-2">
         {name && <span className="hidden max-w-32 truncate text-xs text-muted-foreground sm:block">{name}</span>}
         <button type="button" aria-label="Mis traslados" onClick={()=>go("historial")} className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground hover:text-primary"><CalendarDays className="size-4"/></button>
-        <button type="button" onClick={()=>go("reserva")} className="flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground hover:brightness-110 sm:px-4">Reservar <ArrowRight className="size-4"/></button>
+        <button type="button" onClick={()=>go("reserva")} className="premium-primary-button flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground hover:brightness-110 sm:px-4">Reservar <ArrowRight className="size-4"/></button>
       </div>
     </div>
   </header>;
 }
 function Home({go}:{go:(v:View)=>void}) {
-  return <>
-    <section className="relative isolate overflow-hidden border-b border-primary/10">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_77%_9%,rgba(211,176,111,.20),transparent_44%),radial-gradient(ellipse_at_22%_82%,rgba(33,100,105,.34),transparent_55%),linear-gradient(150deg,#10262b,#18353b_60%,#0e2229)]"/>
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[.09] [background-image:repeating-linear-gradient(115deg,transparent,transparent_3px,#ffffff_3.4px,transparent_3.8px)]"/>
-      <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-10 sm:gap-10 sm:px-8 sm:py-20 md:grid-cols-[1.15fr_.85fr]">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[.15em] text-primary"><Star className="size-3.5"/> Servicio privado en Uruguay</span>
-          <h1 className="mt-5 font-display text-[clamp(2.7rem,6.5vw,5.1rem)] font-semibold leading-[1.06] tracking-[-.055em] text-[#f9f0e5]">Cada viaje,<span className="block text-primary">a tu manera.</span></h1>
-          <p className="mt-4 max-w-lg text-base leading-7 text-[#d0dedb]/90 sm:text-lg">Aeropuertos, viajes programados y recorridos a medida. Disfrutá de una experiencia cómoda, puntual y con atención personal.</p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button onClick={()=>go("reserva")} className={buttonBase+" bg-primary px-7 text-primary-foreground hover:brightness-110"}>Programar traslado <ArrowRight className="size-4"/></button>
-            <button onClick={()=>go("historial")} className={buttonBase+" border border-[#c8d9d5]/35 bg-white/5 text-[#f1efe9] hover:border-primary/50"}><CalendarDays className="size-4"/> Mis traslados</button>
-          </div>
-          <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-xs text-[#c8d4d0]"><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-primary"/> Atención directa</span><span className="flex items-center gap-2"><Clock3 className="size-4 text-primary"/> Horario a elección</span><span className="flex items-center gap-2"><MapPin className="size-4 text-primary"/> Todo Uruguay</span></div>
-        </div>
-        <div className="relative mx-auto w-full max-w-md">
-          <div className="absolute -inset-3 rounded-[2rem] border border-primary/15"/>
-          <div className="relative overflow-hidden rounded-[1.7rem] border border-primary/30 bg-[#233c3e] p-6 shadow-[0_35px_65px_rgba(0,0,0,.30)]">
-            <div className="flex items-start justify-between border-b border-white/10 pb-5"><div><p className="text-[10px] uppercase tracking-[.20em] text-[#d5c18f]">El viaje comienza aquí</p><h2 className="mt-2 font-display text-xl text-[#f5e8d6]">Tu próxima ruta</h2></div><RouteIcon className="size-7 text-primary"/></div>
-            <div className="relative my-8 space-y-7 pl-2"><span className="absolute bottom-5 left-[7px] top-5 w-px bg-primary/70"/>
-              <div className="relative flex items-start gap-4"><span className="relative z-10 mt-1 size-4 shrink-0 rounded-full border-[4px] border-primary bg-[#233c3e]"/><div><p className="text-xs text-[#b6c8c3]">Origen</p><p className="mt-1 font-display text-lg text-[#faf1e1]">Donde estés</p></div></div>
-              <div className="relative flex items-start gap-4"><span className="relative z-10 mt-1 size-4 shrink-0 rounded-full border-[4px] border-primary bg-[#233c3e]"/><div><p className="text-xs text-[#b6c8c3]">Destino</p><p className="mt-1 font-display text-lg text-[#faf1e1]">Donde quieras llegar</p></div></div>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-[#162d31] p-4"><p className="text-sm text-[#dae4dc]">Tu viaje. Tu horario.</p><Sparkles className="size-5 text-primary"/></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-      <div className="text-center"><p className="text-xs font-semibold uppercase tracking-[.2em] text-primary">El servicio</p><h2 className="mt-3 font-display text-3xl text-[#f8ede1] sm:text-4xl">Más que llevarte: acompañarte.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-muted-foreground">Reservas organizadas, itinerarios a medida y comunicación clara en cada etapa.</p></div>
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {[
-          {title:"Aeropuertos",icon:Plane,desc:"Llegadas y salidas sin improvisaciones. Traslados coordinados con anticipación."},
-          {title:"Viajes programados",icon:CalendarDays,desc:"Elegí el día y la hora, consultá tus reservas y mantené organizado tu calendario."},
-          {title:"Recorridos a medida",icon:Navigation2,desc:"Origen, paradas intermedias y destino final, con atención para cada detalle."},
-        ].map(s=><div key={s.title} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary/45"><span className="flex size-12 items-center justify-center rounded-xl bg-primary/10"><s.icon className="size-6 text-primary"/></span><h3 className="mt-5 font-display text-lg">{s.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{s.desc}</p></div>)}
-      </div>
-      <div className="mt-12 flex flex-col items-center justify-between gap-5 rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center sm:flex-row sm:text-left"><div><h3 className="font-display text-xl">¿Querés coordinar algo especial?</h3><p className="mt-2 text-sm text-muted-foreground">Hablemos directamente por WhatsApp.</p></div><a href={WHATSAPP} target="_blank" rel="noreferrer" className={buttonBase+" shrink-0 border border-primary/40 bg-primary/15 text-primary"}><Phone className="size-4"/> Contactar</a></div>
-      <CustomerShareTools/>
-    </section>
-  </>;
+  return <PremiumHome onBook={()=>go("reserva")} onHistory={()=>go("historial")}/>;
 }
 function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>void,onRecover:()=>void}) {
   const [phone,setPhone]=useState(""),[pin,setPin]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
@@ -125,7 +86,7 @@ function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>
     catch(e){setMessage(errorText(e));}finally{setBusy(false);}
   }
   return <section className="mx-auto max-w-lg px-5 py-14">
-    <div className="panel p-6 sm:p-8">
+    <div className="premium-glass rounded-[1.5rem] border border-primary/30 p-6 shadow-[0_24px_58px_rgba(0,0,0,.19)] sm:p-8">
       <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10"><UserRound className="size-7 text-primary"/></div>
       <p className="mt-5 text-center text-xs uppercase tracking-[.2em] text-primary">Espacio personal</p>
       <h1 className="mt-2 text-center font-display text-3xl text-[#f6ecdd]">Bienvenido de nuevo</h1>
@@ -154,6 +115,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   const [date,setDate]=useState(()=>mvdNow().date),[time,setTime]=useState(""),[passengers,setPassengers]=useState(1);
   const [origin,setOrigin]=useState<Loc|null>(previous?{text:previous.origin_text,lat:previous.origin_lat,lng:previous.origin_lng,department:previous.origin_department??null}:null),[destination,setDestination]=useState<Loc|null>(previous?{text:previous.destination_text,lat:previous.destination_lat,lng:previous.destination_lng,department:previous.destination_department??null}:null);
   const [stops,setStops]=useState<Stop[]>(()=>previous?.stops?.map((x,i)=>({id:i+1,value:{text:x.address_text,lat:x.lat,lng:x.lng,department:x.department}}))??[]),[nextId,setNextId]=useState((previous?.stops?.length??0)+1);
+  const routeStops=useMemo(()=>stops.map(s=>s.value).filter((s):s is Loc=>Boolean(s)),[stops]);
   const [comments,setComments]=useState(""),[forOther,setForOther]=useState(Boolean(previous?.passenger_name)),[otherName,setOtherName]=useState(previous?.passenger_name??""),[otherPhone,setOtherPhone]=useState(previous?.passenger_phone??"");
   const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false);
   const [availableRevision,setAvailableRevision]=useState(0);
@@ -216,7 +178,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
       }else toast.error(errorText(e));
     }finally{setBusy(false);}
   }
-  return <section className="mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
+  return <section className="mx-auto max-w-3xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10">
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-primary">Tu próximo viaje</p>
     <h1 className="mt-2 font-display text-3xl text-[#f8efdf] sm:text-4xl">{confirm?"Revisá tu solicitud":"Programá tu traslado"}</h1><p className="mt-3 text-sm text-muted-foreground">Hola, {customer}. Elegí el recorrido a tu medida.</p>
     {confirm?<div className="mt-7 space-y-5">
@@ -229,7 +191,11 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         {forOther&&<Detail label="Viaja" value={otherName+" · "+otherPhone}/>}
         {comments&&<Detail label="Comentarios" value={comments}/>}
       </div></Panel>
-      <p className="text-sm leading-6 text-muted-foreground">La reserva será una solicitud pendiente de confirmación. El conductor confirmará disponibilidad, duración del recorrido y presupuesto.</p>
+      <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
+      <div className="premium-glass rounded-2xl border border-primary/25 p-4">
+        <p className="text-sm font-semibold text-[#f2dfb9]">Presupuesto personalizado · pendiente de revisión</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Enviarás una solicitud, no un pago. El conductor revisará itinerario, distancia por carretera y disponibilidad, y luego podrás aceptar o rechazar el presupuesto desde Mis traslados.</p>
+      </div>
       <div className="flex flex-col gap-3 sm:flex-row"><Button className="h-12 flex-1" variant="outline" onClick={()=>setConfirm(false)} disabled={busy}><ArrowLeft className="mr-2 size-4"/> Editar</Button><Button className="h-12 flex-[2]" disabled={busy} onClick={()=>void submit()}>{busy?"Enviando…":"Enviar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></div>
     </div>:<div className="mt-7 space-y-5">
       <Panel title="Información del viaje" icon={<CalendarDays className="size-5"/>}><div className="space-y-3">
@@ -238,6 +204,13 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
       </div></Panel>
       <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-6">
         <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={v=>{setOrigin(v);selectHour("");}}/>
+        {origin&&<button type="button" disabled={!destination} onClick={()=>document.getElementById("booking-agenda")?.scrollIntoView({behavior:"smooth",block:"start"})}
+          className="premium-glass flex w-full items-center justify-between gap-3 rounded-xl border border-primary/25 px-4 py-3 text-left transition hover:border-primary/50 disabled:opacity-70">
+          <span className="flex items-center gap-3"><Clock3 className="size-5 shrink-0 text-primary"/><span>
+            <span className="block text-xs font-semibold text-[#ecd5a5]">Disponibilidad según tu recorrido</span>
+            <span className="mt-1 block text-xs leading-5 text-[#b8cbc2]">{destination?"Consultá los horarios para este origen y destino.":"Elegí el destino para ver los días y horas de la agenda."}</span>
+          </span></span><ArrowRight className="size-4 shrink-0 text-primary"/>
+        </button>}
         {stops.map((s,i)=><div key={s.id} className="border-t border-border pt-5">
           <div className="mb-2 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[.15em] text-primary">Parada intermedia {i+1}</p><div className="flex items-center gap-1">
             <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===0} aria-label="Subir parada" onClick={()=>{shift(i,-1);selectHour("");}}><MoveUp className="size-4"/></button>
@@ -249,6 +222,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
         <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
       </div></Panel>
+      <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
       <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
         onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
       {scheduleMessage&&<div role="alert" className="rounded-xl border border-amber-400/35 bg-amber-400/10 p-4">

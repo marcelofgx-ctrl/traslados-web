@@ -2,8 +2,8 @@
  * Objetivos: recibir Web Push (aviso de nueva reserva) y dar una pantalla
  * mínima offline. No cachea HTML de la app para evitar versiones viejas.
  */
-const SHELL_CACHE = "tcr-shell-v1";
-const SHELL_ASSETS = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
+const SHELL_CACHE = "traslados-premium-shell-v2";
+const SHELL_ASSETS = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icon.svg", "/offline.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,10 +31,13 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (request.mode === "navigate") {
+    // Private account pages are never cached. Only the explicit offline notice is available.
+    event.respondWith(fetch(request).catch(() => caches.match("/offline.html")));
+    return;
+  }
   if (!SHELL_ASSETS.includes(url.pathname)) return;
-  event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request)),
-  );
+  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
 
 self.addEventListener("push", (event) => {

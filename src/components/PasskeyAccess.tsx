@@ -64,7 +64,7 @@ export function PasskeyAccess({mode,sessionToken,onDone,onBack}:Props) {
   }
   return <section className="mx-auto w-full max-w-lg px-4 pb-16 pt-10 sm:px-6">
     <button type="button" onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><ArrowLeft className="size-4"/> Volver</button>
-    <div className="panel p-6 sm:p-8">
+    <div className="premium-glass rounded-[1.5rem] border border-primary/30 p-6 shadow-[0_24px_58px_rgba(0,0,0,.17)] sm:p-8">
       <div className="mx-auto flex size-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
         {mode==="recuperacion"?<KeyRound className="size-8 text-primary"/>:<Fingerprint className="size-8 text-primary"/>}
       </div>

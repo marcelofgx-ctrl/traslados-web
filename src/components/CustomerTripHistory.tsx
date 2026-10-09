@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { TripProgress } from "@/components/TripProgress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -83,6 +84,7 @@ function TripCard({
       <span className="mt-2 shrink-0 text-primary">{expanded?<ChevronDown className="size-5"/>:<ChevronRight className="size-5"/>}</span>
     </button>
     {expanded&&<div className="border-t border-border/65 bg-background/20 px-4 pb-4 pt-2 sm:px-5">
+      <TripProgress trip={trip}/>
       <Info label="Código de reserva" value={trip.code}/>
       <Info label="Origen" value={trip.origin_text}/>
       {(trip.stops??[]).map((stop,index)=><Info key={index} label={"Parada "+(index+1)} value={stop.address_text}/>)}
@@ -132,6 +134,17 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
     });
     return ()=>{active=false;};
   },[token,revision]);
+  useEffect(()=>{
+    let active=true;
+    const refresh=()=>{
+      if(!active||document.visibilityState!=="visible"||!navigator.onLine||busyTrip)return;
+      void listReservations(token).then(({items})=>{if(active)setAll(items);}).catch(()=>{});
+    };
+    const interval=window.setInterval(refresh,90000);
+    const onVisible=()=>{if(document.visibilityState==="visible")refresh();};
+    document.addEventListener("visibilitychange",onVisible);
+    return ()=>{active=false;window.clearInterval(interval);document.removeEventListener("visibilitychange",onVisible);};
+  },[token,busyTrip]);
   const main=useMemo(()=>all.filter(r=>tripTab(r,now)==="proximos").length,[all,now.date,now.time]);
   const historical=all.length-main;
   const base=useMemo(()=>all.filter(r=>tripTab(r,now)===tab),[all,tab,now.date,now.time]);
@@ -200,7 +213,7 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
         <RefreshCw className={"size-4 "+(loading?"animate-spin":"")}/> Actualizar
       </Button>
     </div>
-    <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Toda tu agenda y el historial de viajes, organizados para encontrar cada reserva en segundos.</p>
+    <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Toda tu agenda y el historial de viajes, organizados para encontrar cada reserva en segundos. Los estados se actualizan mientras estás usando la página.</p>
 
     <div className="mt-6 grid grid-cols-2 gap-3">
       <button type="button" onClick={()=>changeTab("proximos")} aria-pressed={tab==="proximos"}

@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Traslados al aeropuerto, viajes programados y larga distancia. Reservá en un minuto.",
       },
-      { name: "theme-color", content: "#12252c" },
+      { name: "theme-color", content: "#0d252b" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "Traslados" },
       { name: "mobile-web-app-capable", content: "yes" },
@@ -103,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/icon.svg" },
+      { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
       {
         rel: "stylesheet",
         href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
