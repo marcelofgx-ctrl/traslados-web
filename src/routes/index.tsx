@@ -43,7 +43,7 @@ function Panel({ title, icon, children }: {title:string,icon:ReactNode,children:
     <div className="mb-5 flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><h2 className="font-display text-lg font-semibold">{title}</h2></div>{children}
   </div>;
 }
-function Header({ go, name }:{go:(v:View)=>void,name?:string}) {
+function Header({ go, name }:{go:(v:View)=>void,name?:string|undefined}) {
   return <header className="sticky top-0 z-30 border-b border-primary/10 bg-[#12292e]/95 backdrop-blur-xl">
     <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-7">
       <button onClick={()=>go("inicio")} className="flex items-center gap-3 text-left" aria-label="Inicio de Traslados">
@@ -155,7 +155,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   if(stops.some(x=>!x.value))errors.push("Completá o eliminá las paradas sin dirección.");
   if(!date||!time||!isFutureMvd(date,time,10))errors.push("Elegí una fecha y hora futura en formato HH:mm.");
   if(forOther&&(otherName.trim().length<2||otherPhone.replace(/\D/g,"").length<8))errors.push("Completá el nombre y celular de quien viaja.");
-  function shift(i:number,delta:number){const target=i+delta;if(target<0||target>=stops.length)return;const copy=[...stops];const temp=copy[i];copy[i]=copy[target];copy[target]=temp;setStops(copy);}
+  function shift(i:number,delta:number){const target=i+delta;if(target<0||target>=stops.length)return;const copy=[...stops];const temp=copy[i];copy[i]=copy[target]!;copy[target]=temp!;setStops(copy);}
   async function submit() {
     if(!origin||!destination||errors.length){toast.error(errors[0]??"Faltan datos.");return;}
     setBusy(true);
