@@ -42,7 +42,8 @@ export function TimeSelect24({
           aria-label="Minutos"
           className={cls}
           value={m ?? ""}
-          onChange={(e) => onChange(`${h || "00"}:${e.target.value}`)}
+          disabled={!h}
+          onChange={(e) => onChange(`${h}:${e.target.value}`)}
         >
           <option value="" disabled>
             mm
