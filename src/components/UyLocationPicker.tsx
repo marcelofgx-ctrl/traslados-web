@@ -171,7 +171,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
           <MapPin className="mt-0.5 size-5 shrink-0 text-success" />
           <div className="min-w-0 flex-1">
             <p className="break-words text-sm font-medium text-foreground">{value.text}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{departmentLabel(value.department) || "Uruguay"} · Punto confirmado en el mapa</p>
+            <p className="mt-1 text-xs text-muted-foreground">{departmentLabel(value.department) || "Uruguay"} · Punto de referencia; podés ajustar el acceso en el mapa</p>
           </div>
           <button type="button" aria-label={"Modificar " + label} onClick={() => { onChange(null); setQuery(value.text); }} className="rounded-lg p-1.5 text-muted-foreground hover:text-primary"><X className="size-4" /></button>
         </div>
@@ -207,11 +207,15 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
       )}
       {!value && query.trim().length<2 && <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-muted-foreground">Accesos rápidos:</span>
-        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[0]!)}
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[1]!)}
           className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
           Aeropuerto de Carrasco
         </button>
-        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[1]!)}
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[0]!)}
+          className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+          Plaza Italia Shopping
+        </button>
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[2]!)}
           className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs text-[#d8c49d] hover:bg-primary/10">
           Laguna del Sauce
         </button>
