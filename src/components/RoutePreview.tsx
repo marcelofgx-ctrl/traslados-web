@@ -109,7 +109,7 @@ export function RoutePreview({origin,destination,stops,compact=false}:Props){
     </div>}
   </section>;
 }
-function RouteMiniMap({route,geometry}:{route:Loc[];geometry?:Array<[number,number]>}){
+function RouteMiniMap({route,geometry}:{route:Loc[];geometry?:Array<[number,number]>|undefined}){
   const host=useRef<HTMLDivElement>(null);
   const map=useRef<LeafletMap|null>(null);
   useEffect(()=>{
