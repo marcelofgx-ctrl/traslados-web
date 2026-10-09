@@ -2,14 +2,21 @@ import { useState } from "react";
 import { CarFront, CalendarDays, Clock3, Info, MessageCircle, Radio, ShieldCheck } from "lucide-react";
 
 export type PickupMode="ahora"|"10"|"programado";
-const WA="https://wa.me/59897228175?text="+encodeURIComponent("Hola, estoy viendo Traslados y quisiera consultar una recogida lo antes posible. ¿Estás disponible?");
+
 export function PickupModePicker({
- mode,onModeChange,hasOrigin,hasDestination,
+ mode,onModeChange,hasOrigin,hasDestination,originText,destinationText,
 }:{
- mode:PickupMode;onModeChange:(next:PickupMode)=>void;hasOrigin:boolean;hasDestination:boolean;
+ mode:PickupMode;onModeChange:(next:PickupMode)=>void;hasOrigin:boolean;hasDestination:boolean;originText?:string|undefined;destinationText?:string|undefined;
 }){
   const [details,setDetails]=useState(false);
   const instant=mode!=="programado";
+  const request=[
+    "Hola, quisiera consultar una recogida "+(mode==="10"?"dentro de 10 minutos":"lo antes posible")+".",
+    originText?"Origen: "+originText:"",
+    destinationText?"Destino: "+destinationText:"",
+    "¿Estás disponible y cuánto tardarías en llegar?",
+  ].filter(Boolean).join("\n");
+  const wa="https://wa.me/59897228175?text="+encodeURIComponent(request);
   return <section className="premium-glass overflow-hidden rounded-2xl border border-primary/25 p-4 sm:p-5" aria-label="Modalidad de recogida">
     <div className="flex items-center gap-2">
       <CarFront className="size-5 text-[#ddbc79]"/>
@@ -32,7 +39,7 @@ export function PickupModePicker({
             No podemos calcular con seguridad cuántos kilómetros o minutos faltan para recogerte.
           </p>
           {!hasOrigin||!hasDestination?<p className="mt-2 text-xs text-[#d1c0a0]">Seleccioná origen y destino para ver tu recorrido.</p>:null}
-          <a href={WA} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e0bc77]/45 bg-[#e0bc77]/10 px-3 text-sm font-semibold text-[#f1d69d] hover:bg-[#e0bc77]/20">
+          <a href={wa} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e0bc77]/45 bg-[#e0bc77]/10 px-3 text-sm font-semibold text-[#f1d69d] hover:bg-[#e0bc77]/20">
             <MessageCircle className="size-4"/> Consultar disponibilidad por WhatsApp
           </a>
           <button type="button" onClick={()=>setDetails(v=>!v)} aria-expanded={details} className="mt-2 text-xs text-[#cdbb97] underline-offset-2 hover:underline">¿Cómo funcionará la llegada estimada?</button>
