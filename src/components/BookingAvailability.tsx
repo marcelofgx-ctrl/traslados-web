@@ -48,6 +48,11 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
   const [error,setError]=useState("");
   const [manual,setManual]=useState(false);
   const [expanded,setExpanded]=useState(true);
+  useEffect(()=>{
+    // Una vez elegida la hora, conservar a la vista solo el resumen.
+    // Al quitarla para modificar el trayecto, volver a abrir la agenda.
+    setExpanded(!Boolean(time));
+  },[time]);
   const [refresh,setRefresh]=useState(0);
   // Avoid showing old day's availability while fetching a different date/route.
   const routeKey=origin&&destination
@@ -84,7 +89,7 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
           <CalendarCheck2 className="size-5 text-primary"/>
         </span>
         <span><strong className="block font-display text-lg text-[#f7eddd]">Disponibilidad para tu traslado</strong>
-          <span className="mt-0.5 block text-xs text-[#bfcecb]">{selected?("Seleccionaste "+time+" h"):"Elegí el día y consultá las horas sugeridas"}</span>
+          <span className="mt-0.5 block text-xs text-[#d7d0bd]">{selected?("Reserva para "+date.split("-").reverse().join("/")+" · "+time+" h"):"Elegí el día y consultá las horas sugeridas"}</span>
         </span>
       </span>
       {expanded?<ChevronLeft className="-rotate-90 size-5 shrink-0 text-primary"/>:<ChevronRight className="size-5 shrink-0 text-primary"/>}
