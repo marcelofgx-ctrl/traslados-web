@@ -6,12 +6,13 @@ import {
   resolveUy, reverseUy, searchUy, type UySuggestion,
 } from "@/lib/uy-geo";
 import type { Loc } from "@/lib/operativa/api";
+import { localUyPlaces, URUGUAY_PLACES } from "@/lib/uy-places";
 
 const MapPicker = lazy(() => import("@/components/MapPicker"));
 
 type Props = { label: string; value: Loc | null; onChange: (value: Loc | null) => void; id: string };
 export function UyLocationPicker({ label, value, onChange, id }: Props) {
-  const [department, setDepartment] = useState("CANELONES");
+  const [department, setDepartment] = useState(ALL_URUGUAY);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<UySuggestion[]>([]);
   const [widened, setWidened] = useState(false);
@@ -28,32 +29,38 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
   }, [value?.text, value?.lat, value?.lng]);
 
   useEffect(() => {
-    if (value || query.trim().length < 3) {
+    const rid = ++requestId.current;
+    const controller = new AbortController();
+    if (value || query.trim().length < 2) {
       setSuggestions([]);
       setBusy(false);
-      return;
+      return () => controller.abort();
     }
-    const controller = new AbortController();
-    const rid = ++requestId.current;
-    const timeout = setTimeout(async () => {
-      setBusy(true);
-      setMessage("");
+    // Nunca esperar una petición remota para mostrar el aeropuerto.
+    const immediate = localUyPlaces(query, department);
+    setSuggestions(immediate);
+    setWidened(false);
+    setBusy(false);
+    setMessage("");
+    if (query.trim().length < 3) return () => controller.abort();
+    const timeout = window.setTimeout(async () => {
+      setBusy(immediate.length === 0);
       try {
         const result = await searchUy(query, department, controller.signal);
-        if (rid === requestId.current) {
+        if (rid === requestId.current && !controller.signal.aborted) {
           setSuggestions(result.items);
           setWidened(result.widened);
-          if (result.items.length === 0) setMessage("No encontramos esa dirección. Probá otra referencia o elegí el punto en el mapa.");
+          if (!result.items.length) setMessage("No encontramos la dirección. Probá otra referencia o elegí el punto en el mapa.");
         }
       } catch {
         if (!controller.signal.aborted && rid === requestId.current) {
-          setMessage("El buscador no respondió. Podés elegir el punto en el mapa.");
+          setMessage(immediate.length ? "" : "La búsqueda demora o no responde. Podés elegir un lugar conocido o señalarlo en el mapa.");
         }
       } finally {
         if (!controller.signal.aborted && rid === requestId.current) setBusy(false);
       }
-    }, 250);
-    return () => { clearTimeout(timeout); controller.abort(); };
+    }, 180);
+    return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [query, department, value]);
 
   async function selectSuggestion(s: UySuggestion) {
@@ -131,7 +138,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
       >
         <option value="">Otros departamentos de Uruguay</option>
         {other.map(d => <option value={d.id} key={d.id}>{d.label}</option>)}
-        <option value={ALL_URUGUAY}>Buscar en todo Uruguay</option>
+        <option value={ALL_URUGUAY}>Todo Uruguay (sin filtros)</option>
       </select>
 
       {value ? (
@@ -173,6 +180,17 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
           )}
         </div>
       )}
+      {!value && query.trim().length<2 && <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-muted-foreground">Accesos rápidos:</span>
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[0]!)}
+          className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+          Aeropuerto de Carrasco
+        </button>
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[1]!)}
+          className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs text-[#d8c49d] hover:bg-primary/10">
+          Laguna del Sauce
+        </button>
+      </div>}
       {message && <p className="text-xs text-warning" role="status">{message}</p>}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" type="button" variant="outline" onClick={() => setMapOpen(v => !v)}><MapPinned className="mr-2 size-4" /> {mapOpen ? "Cerrar mapa" : "Elegir en mapa"}</Button>
