@@ -255,3 +255,36 @@ export function takeRepeatDraft(): RepeatDraft | null {
 export function isInvalidSession(e: unknown) {
   return e instanceof Error && /sesi[oó]n inv[aá]lida/i.test(e.message);
 }
+
+/** Vista previa segura: únicamente rutas por carretera verificadas y presencia publicada voluntariamente. */
+export type TripPreview = {
+  route_known: boolean;
+  route_distance_km: number | null;
+  route_duration_min: number | null;
+  estimated_fare: number | null;
+  currency: "UYU";
+  driver_nearby: boolean;
+  driver_distance_km: number | null;
+  driver_eta_min: number | null;
+  quote_is_final: false;
+};
+/** El SQL v16 puede no estar desplegado aún. No repetir RPC inexistentes ni inventar valores. */
+let tripPreviewRpcMissing = false;
+export async function getTripPreview(
+  token: string, origin: Loc, destination: Loc, stops: Loc[], date: string, time: string,
+): Promise<TripPreview | null> {
+  if (tripPreviewRpcMissing) return null;
+  try {
+    return await rpc<TripPreview>("customer_trip_preview_v16", {
+      p_session_token: token,
+      p_origin_lat: origin.lat, p_origin_lng: origin.lng,
+      p_destination_lat: destination.lat, p_destination_lng: destination.lng,
+      p_stops: stops.map(s => ({ lat: s.lat, lng: s.lng })),
+      p_pickup_date: date || null,
+      p_pickup_time: time || null,
+    });
+  } catch (error) {
+    if (error instanceof RpcMissingError) { tripPreviewRpcMissing = true; return null; }
+    throw error;
+  }
+}

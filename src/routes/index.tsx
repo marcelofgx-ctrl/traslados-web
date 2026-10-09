@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UyLocationPicker } from "@/components/UyLocationPicker";
 import { BookingAvailability } from "@/components/BookingAvailability";
+import { TripPreview } from "@/components/TripPreview";
 import { PasskeyAccess } from "@/components/PasskeyAccess";
 import { CustomerTripHistory } from "@/components/CustomerTripHistory";
 import { CustomerShareTools } from "@/components/CustomerShareTools";
@@ -245,6 +246,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         <Button variant="outline" disabled={stops.length>=8} className="min-h-10 w-full border-dashed text-sm" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
         <div className="border-t border-border/50 pt-3"><UyLocationPicker id="to-location" variant="destination" label="DESTINO FINAL" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
       </div></Panel>
+      <TripPreview token={token} origin={origin} destination={destination} stops={stops.map(s=>s.value).filter((s):s is Loc=>s!==null)} date={date} time={time}/>
       <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
         onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border/65 bg-card/60 px-4 py-2.5">
@@ -255,11 +257,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
           <Button variant="outline" size="icon" className="size-9" aria-label="Agregar pasajero" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button>
         </div>
       </div>
-      <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
-        <p className="font-semibold text-[#f0dfbc]">Precio orientativo y presupuesto del conductor</p>
-        <p className="mt-1 leading-5 text-[#c7d4ce]">La tarifa estimada necesita distancia real por carretera y tiempo de ruta. No mostramos kilómetros ni precios calculados en línea recta. Una vez enviada tu solicitud, recibirás el presupuesto definitivo para aceptarlo o rechazarlo desde «Mis traslados».</p>
-        <p className="mt-1.5 text-xs text-primary">No se realiza ningún cobro al enviar la solicitud.</p>
-      </div>
+      <p className="text-[11px] text-center text-muted-foreground">Enviar la solicitud es gratuito. El presupuesto definitivo requiere tu aceptación.</p>
       {scheduleMessage&&<div role="alert" className="rounded-xl border border-amber-400/35 bg-amber-400/10 p-4">
         <p className="text-sm font-semibold text-[#e8c68a]">El horario solicitado no está disponible</p>
         <p className="mt-1 text-sm leading-6 text-[#d9c8a8]">{scheduleMessage}</p>
