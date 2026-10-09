@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ChevronDown, ChevronRight, Compass, MapPinned, Route as RouteIcon, ShieldCheck } from "lucide-react";
-import type { Map as LeafletMap } from "leaflet";
+import type { Map as LeafletMap, LatLngExpression } from "leaflet";
 import type { Loc } from "@/lib/operativa/api";
 
 type Props={origin:Loc|null;destination:Loc|null;stops:Loc[];compact?:boolean};
@@ -66,7 +66,7 @@ function RouteMiniMap({route}:{route:Loc[]}){
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
         maxZoom:19,attribution:"© OpenStreetMap contributors",
       }).addTo(instance);
-      const line:L.LatLngExpression[]=route.map(p=>[p.lat,p.lng]);
+      const line:LatLngExpression[]=route.map(p=>[p.lat,p.lng]);
       L.polyline(line,{color:"#d5b36a",weight:3,opacity:.9,dashArray:"6 6"}).addTo(instance);
       route.forEach((p,i)=>{
         const label=i===0?"O":i===route.length-1?"D":String(i);
