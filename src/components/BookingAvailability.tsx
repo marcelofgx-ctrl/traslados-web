@@ -76,7 +76,7 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
     onTimeChange("");
     setManual(false);
   }
-  return <div className="overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-[#19383b]/90 to-[#102b30]/90 shadow-[0_14px_30px_rgba(0,0,0,.13)]">
+  return <div id="booking-agenda" className="overflow-hidden scroll-mt-28 rounded-2xl border border-primary/25 bg-gradient-to-br from-[#19383b]/90 to-[#102b30]/90 shadow-[0_14px_30px_rgba(0,0,0,.13)]">
     <button type="button" onClick={()=>setExpanded(v=>!v)} aria-expanded={expanded}
       className="flex min-h-16 w-full items-center justify-between gap-3 px-4 text-left sm:px-5">
       <span className="flex items-center gap-3">
