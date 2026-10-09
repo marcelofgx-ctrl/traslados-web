@@ -135,7 +135,11 @@ def main():
     print("Indexed named Uruguay POIs:", len(deduped), "bytes:", dest.stat().st_size)
     for word in ["punta carretas", "plaza italia", "tres cruces", "portones shopping"]:
         found = [x[:6] for x in deduped if word in CANON(x[1])]
-        print("CHECK", word, len(found), found[:5])
+        print("CHECK", word, len(found), found[:15])
+    shopping = [x[:6] for x in deduped
+                if "punta carretas" in CANON(x[1]) and
+                ("shopping" in CANON(x[1]) or "mall" in CANON(x[1]))]
+    print("CHECK PUNTA CARRETAS SHOPPING", shopping)
 
 if __name__ == "__main__":
     main()
