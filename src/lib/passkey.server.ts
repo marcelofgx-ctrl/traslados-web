@@ -10,6 +10,7 @@ import {
 const OPERATIVE_URL = "https://zetaudvvutlouiqxopvg.supabase.co";
 const PUBLIC_ORIGIN = "https://traslados-web.marcelof-gx.workers.dev";
 type Body = Record<string, unknown>;
+type PasskeyDb = any; // Service-role schema is distinct from the generated legacy database types.
 class ApiError extends Error { constructor(message: string, public status = 400) { super(message); } }
 
 function serverConfig(request: Request) {
@@ -23,7 +24,7 @@ function serverConfig(request: Request) {
   }
   const key = process.env["PASSKEY_SUPABASE_SERVICE_ROLE_KEY"];
   if (!key) throw new ApiError("Falta configurar la autenticación del servidor", 503);
-  const db = createClient(OPERATIVE_URL, key, {
+  const db: PasskeyDb = createClient(OPERATIVE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
       fetch: (input, init) => {
@@ -48,7 +49,7 @@ async function hash(s: string) {
 function failDb(error: {message:string} | null, fallback="No se pudo guardar la credencial") {
   if (error) { console.error("Passkey persistence:", error.message); throw new ApiError(fallback, 500); }
 }
-async function protectRate(db: ReturnType<typeof createClient>, request: Request) {
+async function protectRate(db: PasskeyDb, request: Request) {
   const ip = request.headers.get("cf-connecting-ip") || "local";
   const ipHash = await hash(ip);
   const cutoff = new Date(Date.now() - 10 * 60_000).toISOString();
@@ -59,7 +60,7 @@ async function protectRate(db: ReturnType<typeof createClient>, request: Request
   if ((count||0)>=10) throw new ApiError("Demasiados intentos. Probá dentro de unos minutos.",429);
   return ipHash;
 }
-async function consume(db: ReturnType<typeof createClient>, challengeId: unknown, op:string, rpID:string) {
+async function consume(db: PasskeyDb, challengeId: unknown, op:string, rpID:string) {
   if (typeof challengeId !== "string" || !/^[0-9a-f-]{36}$/.test(challengeId)) throw new ApiError("Desafío inválido");
   const {data,error} = await db.from("customer_passkey_challenges")
     .update({consumed:true})
@@ -74,7 +75,7 @@ function validString(v:unknown,min=1,max=300) {
   if(typeof v!=="string"||v.trim().length<min||v.trim().length>max)throw new ApiError("Datos incompletos");
   return v.trim();
 }
-async function findCustomer(db:ReturnType<typeof createClient>,token:unknown) {
+async function findCustomer(db:PasskeyDb,token:unknown) {
   const s=validString(token,32,300);
   const tokenHash=await hash(s);
   const {data,error}=await db.from("customer_sessions").select("customer_id,expires_at")
@@ -86,10 +87,10 @@ async function findCustomer(db:ReturnType<typeof createClient>,token:unknown) {
 
 export async function passkeyHandler(request:Request, body:Body) {
   const {db,origin,rpID}=serverConfig(request);
-  const step=validString(body.step,1,60);
+  const step=validString(body["step"],1,60);
   if(step==="register-options") {
     const ipHash=await protectRate(db,request);
-    const customerId=body.sessionToken?await findCustomer(db,body.sessionToken):null;
+    const customerId=body["sessionToken"]?await findCustomer(db,body["sessionToken"]):null;
     const username=crypto.randomUUID();
     const options=await generateRegistrationOptions({
       rpName:"Traslados Uruguay",rpID,userName:username,userDisplayName:"Cliente de Traslados",
@@ -105,14 +106,14 @@ export async function passkeyHandler(request:Request, body:Body) {
     return {challengeId:data!.id,options};
   }
   if(step==="register-verify") {
-    const pending=await consume(db,body.challengeId,"register",rpID);
+    const pending=await consume(db,body["challengeId"],"register",rpID);
     if(pending.customer_id) {
-      const actual=await findCustomer(db,body.sessionToken);
+      const actual=await findCustomer(db,body["sessionToken"]);
       if(actual!==pending.customer_id)throw new ApiError("Cuenta incorrecta",403);
     }
-    if(!body.credential||typeof body.credential!=="object")throw new ApiError("Faltan datos de la huella");
+    if(!body["credential"]||typeof body["credential"]!=="object")throw new ApiError("Faltan datos de la huella");
     const result=await verifyRegistrationResponse({
-      response:body.credential as RegistrationResponseJSON,
+      response:body["credential"] as RegistrationResponseJSON,
       expectedChallenge:pending.challenge,expectedOrigin:origin,expectedRPID:rpID,
       requireUserVerification:true,supportedAlgorithmIDs:[-7,-257],
     });
@@ -129,13 +130,13 @@ export async function passkeyHandler(request:Request, body:Body) {
     if(pending.customer_id) {
       const recoveryCode=randomSecret(32);
       const {data,error}=await db.rpc("customer_passkey_add_v14",{
-        p_session_token:body.sessionToken,p_recovery_code:recoveryCode,...metadata,
+        p_session_token:body["sessionToken"],p_recovery_code:recoveryCode,...metadata,
       });
       failDb(error,"No pudimos asociar la huella a tu cuenta");
       return {ok:Boolean(data),added:true,recoveryCode};
     }
-    const name=validString(body.name,2,120),phone=validString(body.phone,8,22);
-    const pin=validString(body.pin,6,6);
+    const name=validString(body["name"],2,120),phone=validString(body["phone"],8,22);
+    const pin=validString(body["pin"],6,6);
     if(!/^\d{6}$/.test(pin))throw new ApiError("El PIN debe tener 6 dígitos");
     const recoveryCode=randomSecret(32);
     const {data,error}=await db.rpc("customer_passkey_create_v14",{
@@ -160,8 +161,8 @@ export async function passkeyHandler(request:Request, body:Body) {
     return {challengeId:data!.id,options};
   }
   if(step==="authenticate-verify") {
-    const pending=await consume(db,body.challengeId,"authenticate",rpID);
-    const response=body.credential as AuthenticationResponseJSON|undefined;
+    const pending=await consume(db,body["challengeId"],"authenticate",rpID);
+    const response=body["credential"] as AuthenticationResponseJSON|undefined;
     if(!response ||typeof response.id!=="string")throw new ApiError("Faltan datos de autenticación");
     const {data:passkey,error}=await db.from("customer_passkeys")
       .select("credential_id,public_key,counter,transports")
@@ -190,8 +191,8 @@ export async function passkeyHandler(request:Request, body:Body) {
     await protectRate(db,request);
     const recoveryCode=randomSecret(32);
     const {data,error}=await db.rpc("customer_passkey_recover_v14",{
-      p_phone:validString(body.phone,8,22),p_recovery_code:validString(body.recoveryCode,30,120),
-      p_new_pin:validString(body.pin,6,6),p_new_recovery_code:recoveryCode,
+      p_phone:validString(body["phone"],8,22),p_recovery_code:validString(body["recoveryCode"],30,120),
+      p_new_pin:validString(body["pin"],6,6),p_new_recovery_code:recoveryCode,
     });
     if(error)throw new ApiError("Datos de recuperación incorrectos",400);
     return {ok:true,session:data,recoveryCode};
