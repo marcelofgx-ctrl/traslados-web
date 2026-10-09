@@ -17,7 +17,7 @@ describe("Índice nacional POI OSM",()=>{
   });
   test("Encuentra por nombre shoppings, hospitales y no confunde con avenidas",()=>{
     expect(searchIndexedRows(rows,"plaza italia","CANELONES")[0]?.main).toBe("Plaza Italia Shopping");
-    expect(searchIndexedRows(rows,"hospital clinicas","MONTEVIDEO")).toHaveLength(0);
+    expect(searchIndexedRows(rows,"hospital clinicas","MONTEVIDEO")[0]?.main).toBe("Hospital de Clínicas");
     expect(searchIndexedRows(rows,"hospital de clinicas","MONTEVIDEO")[0]?.main).toBe("Hospital de Clínicas");
     expect(searchIndexedRows(rows,"portones shopping","MONTEVIDEO")[0]?.main).toBe("Portones Shopping");
   });
