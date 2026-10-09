@@ -96,19 +96,46 @@ export async function listReservations(token: string): Promise<{ items: OpReserv
   }
 }
 
-export async function getAvailableSlots(token: string, date: string, durationMin: number | null) {
-  return rpc<{ available_times: string[]; enabled: boolean; duration_used_min: number }>(
-    "customer_get_available_slots_v11_4",
-    { p_session_token: token, p_pickup_date: date, p_trip_duration_min: durationMin },
-  );
-}
+export type AvailabilitySlots = {
+  date: string;
+  enabled: boolean;
+  slot_interval_min: number;
+  duration_used_min: number;
+  available_times: string[];
+  reposition_method?: "ROAD" | "ESTIMATED" | string;
+};
 
-export async function checkAvailability(token: string, date: string, time: string, durationMin: number | null) {
-  return rpc<{ available: boolean; reason: string; suggested_times: string[] }>("customer_check_availability_v11_4", {
+export type AvailabilityCheck = {
+  date: string;
+  time: string;
+  available: boolean;
+  reason: string;
+  duration_used_min: number;
+  suggested_times: string[];
+  reposition_method?: "ROAD" | "ESTIMATED" | string;
+};
+
+/** Consulta de horarios según agenda, conflictos y desplazamiento desde/hacia viajes registrados.
+ * IMPORTANTE: ambas coordenadas son obligatorias para el validador real v11.4.
+ * La duración null utiliza la duración predeterminada vigente del servidor.
+ */
+export async function getAvailableSlots(token: string, date: string, durationMin: number | null, origin: Loc, destination: Loc) {
+  return rpc<AvailabilitySlots>("customer_get_available_slots_v11_4", {
     p_session_token: token,
     p_pickup_date: date,
-    p_pickup_time: time,
     p_trip_duration_min: durationMin,
+    p_origin_lat: origin.lat, p_origin_lng: origin.lng,
+    p_destination_lat: destination.lat, p_destination_lng: destination.lng,
+  });
+}
+
+export async function checkAvailability(token: string, date: string, time: string, durationMin: number | null, origin: Loc, destination: Loc) {
+  return rpc<AvailabilityCheck>("customer_check_availability_v11_4", {
+    p_session_token: token,
+    p_pickup_date: date, p_pickup_time: time,
+    p_trip_duration_min: durationMin,
+    p_origin_lat: origin.lat, p_origin_lng: origin.lng,
+    p_destination_lat: destination.lat, p_destination_lng: destination.lng,
   });
 }
 
@@ -116,8 +143,10 @@ export const AVAILABILITY_REASON: Record<string, string> = {
   AVAILABLE: "Horario disponible",
   OUTSIDE_SCHEDULE: "Fuera del horario de atención",
   OCCUPIED: "Ese horario ya está ocupado",
-  TOO_SOON: "Se necesita más anticipación para ese horario",
-  CLOSED: "No hay servicio ese día",
+  TOO_SOON: "El horario requiere más anticipación",
+  CLOSED: "No hay disponibilidad configurada para ese día",
+  TRAVEL_TIME: "No alcanza el tiempo de desplazamiento entre reservas",
+  HORARIO_NO_DISPONIBLE: "Ese horario ya no está disponible. Elegí otra opción.",
 };
 
 export type NewTrip = {
