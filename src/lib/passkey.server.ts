@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Buffer } from "node:buffer";
+import { normalizePasskeyOrigin, isPermittedPasskeyRequest, passkeyHostMatches } from "./passkey-origin";
 import {
   generateRegistrationOptions, generateAuthenticationOptions,
   verifyRegistrationResponse, verifyAuthenticationResponse,
@@ -14,9 +15,11 @@ type PasskeyDb = any; // Service-role schema is distinct from the generated lega
 class ApiError extends Error { constructor(message: string, public status = 400) { super(message); } }
 
 function serverConfig(request: Request) {
-  const origin = process.env["PASSKEY_PUBLIC_ORIGIN"] || PUBLIC_ORIGIN;
-  const requestOrigin = request.headers.get("origin");
-  if (!origin.startsWith("https://") || new URL(request.url).origin !== origin || requestOrigin !== origin) {
+  const configuredOrigin = process.env["PASSKEY_PUBLIC_ORIGIN"] || PUBLIC_ORIGIN;
+  const origin = normalizePasskeyOrigin(configuredOrigin);
+  // Both the browser's Origin header and the requested host must match.
+  // Accept a hostname without https:// in Cloudflare, but never an external origin.
+  if (!origin || !isPermittedPasskeyRequest(configuredOrigin, request)) {
     throw new ApiError("Origen no autorizado", 403);
   }
   if (process.env["PASSKEY_AUTH_ENABLED"] !== "true") {
@@ -204,10 +207,14 @@ export async function passkeyHandler(request:Request, body:Body) {
   throw new ApiError("Operación no permitida",400);
 }
 
-export function passkeyStatus() {
+export function passkeyStatus(request: Request) {
+  // Status must also check the configured hostname; a present secret is not
+  // sufficient evidence that the configured WebAuthn origin is usable.
+  const configuredOrigin = process.env["PASSKEY_PUBLIC_ORIGIN"] || PUBLIC_ORIGIN;
   return Boolean(
-    process.env["PASSKEY_AUTH_ENABLED"]==="true" &&
-    process.env["PASSKEY_SUPABASE_SERVICE_ROLE_KEY"],
+    process.env["PASSKEY_AUTH_ENABLED"] === "true" &&
+    process.env["PASSKEY_SUPABASE_SERVICE_ROLE_KEY"] &&
+    passkeyHostMatches(configuredOrigin, request),
   );
 }
 export function passkeyError(error:unknown) {
