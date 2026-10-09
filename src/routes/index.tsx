@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UyLocationPicker } from "@/components/UyLocationPicker";
 import { TimeSelect24 } from "@/components/TimeSelect24";
 import { PasskeyAccess } from "@/components/PasskeyAccess";
+import { CustomerTripHistory } from "@/components/CustomerTripHistory";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, createReservation, getProfile,
@@ -45,15 +46,15 @@ function Panel({ title, icon, children }: {title:string,icon:ReactNode,children:
 }
 function Header({ go, name }:{go:(v:View)=>void,name?:string|undefined}) {
   return <header className="sticky top-0 z-30 border-b border-primary/10 bg-[#12292e]/95 backdrop-blur-xl">
-    <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-7">
-      <button onClick={()=>go("inicio")} className="flex items-center gap-3 text-left" aria-label="Inicio de Traslados">
-        <span className="flex size-11 items-center justify-center rounded-xl border border-primary/40 bg-primary/10"><Navigation2 className="size-6 rotate-45 text-primary"/></span>
-        <span className="flex flex-col"><span className="font-display text-base font-semibold tracking-[.10em] text-[#f5ebdd]">TRASLADOS</span><span className="text-[9px] tracking-[.21em] text-primary">VIAJES PROGRAMADOS</span></span>
+    <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-7">
+      <button onClick={()=>go("inicio")} className="flex min-w-0 items-center gap-2 text-left sm:gap-3" aria-label="Inicio de Traslados">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 sm:size-11"><Navigation2 className="size-5 rotate-45 text-primary sm:size-6"/></span>
+        <span className="flex min-w-0 flex-col"><span className="font-display text-[13px] font-semibold tracking-[.08em] text-[#f5ebdd] sm:text-base">TRASLADOS</span><span className="hidden text-[9px] tracking-[.18em] text-primary min-[390px]:block">VIAJES PROGRAMADOS</span></span>
       </button>
       <div className="flex items-center gap-2">
         {name && <span className="hidden max-w-32 truncate text-xs text-muted-foreground sm:block">{name}</span>}
-        <button type="button" aria-label="Mis traslados" onClick={()=>go("historial")} className="flex size-10 items-center justify-center rounded-xl border border-border text-muted-foreground hover:text-primary"><CalendarDays className="size-4"/></button>
-        <button type="button" onClick={()=>go("reserva")} className="flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-110">Reservar <ArrowRight className="size-4"/></button>
+        <button type="button" aria-label="Mis traslados" onClick={()=>go("historial")} className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground hover:text-primary"><CalendarDays className="size-4"/></button>
+        <button type="button" onClick={()=>go("reserva")} className="flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground hover:brightness-110 sm:px-4">Reservar <ArrowRight className="size-4"/></button>
       </div>
     </div>
   </header>;
@@ -63,16 +64,16 @@ function Home({go}:{go:(v:View)=>void}) {
     <section className="relative isolate overflow-hidden border-b border-primary/10">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_77%_9%,rgba(211,176,111,.20),transparent_44%),radial-gradient(ellipse_at_22%_82%,rgba(33,100,105,.34),transparent_55%),linear-gradient(150deg,#10262b,#18353b_60%,#0e2229)]"/>
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-[.09] [background-image:repeating-linear-gradient(115deg,transparent,transparent_3px,#ffffff_3.4px,transparent_3.8px)]"/>
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-14 sm:px-8 sm:py-20 md:grid-cols-[1.15fr_.85fr]">
+      <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-10 sm:gap-10 sm:px-8 sm:py-20 md:grid-cols-[1.15fr_.85fr]">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[.15em] text-primary"><Star className="size-3.5"/> Servicio privado en Uruguay</span>
-          <h1 className="mt-7 font-display text-[clamp(2.7rem,6.5vw,5.1rem)] font-semibold leading-[1.06] tracking-[-.055em] text-[#f9f0e5]">Cada viaje,<span className="block text-primary">a tu manera.</span></h1>
-          <p className="mt-6 max-w-lg text-base leading-7 text-[#d0dedb]/90 sm:text-lg">Aeropuertos, viajes programados y recorridos a medida. Disfrutá de una experiencia cómoda, puntual y con atención personal.</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <h1 className="mt-5 font-display text-[clamp(2.7rem,6.5vw,5.1rem)] font-semibold leading-[1.06] tracking-[-.055em] text-[#f9f0e5]">Cada viaje,<span className="block text-primary">a tu manera.</span></h1>
+          <p className="mt-4 max-w-lg text-base leading-7 text-[#d0dedb]/90 sm:text-lg">Aeropuertos, viajes programados y recorridos a medida. Disfrutá de una experiencia cómoda, puntual y con atención personal.</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button onClick={()=>go("reserva")} className={buttonBase+" bg-primary px-7 text-primary-foreground hover:brightness-110"}>Programar traslado <ArrowRight className="size-4"/></button>
             <button onClick={()=>go("historial")} className={buttonBase+" border border-[#c8d9d5]/35 bg-white/5 text-[#f1efe9] hover:border-primary/50"}><CalendarDays className="size-4"/> Mis traslados</button>
           </div>
-          <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs text-[#c8d4d0]"><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-primary"/> Atención directa</span><span className="flex items-center gap-2"><Clock3 className="size-4 text-primary"/> Horario a elección</span><span className="flex items-center gap-2"><MapPin className="size-4 text-primary"/> Todo Uruguay</span></div>
+          <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-xs text-[#c8d4d0]"><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-primary"/> Atención directa</span><span className="flex items-center gap-2"><Clock3 className="size-4 text-primary"/> Horario a elección</span><span className="flex items-center gap-2"><MapPin className="size-4 text-primary"/> Todo Uruguay</span></div>
         </div>
         <div className="relative mx-auto w-full max-w-md">
           <div className="absolute -inset-3 rounded-[2rem] border border-primary/15"/>
@@ -216,50 +217,10 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   </section>;
 }
 function HistoryView({ token, go, onRepeat }:{token:string,go:(v:View)=>void,onRepeat:(r:OpReservation)=>void}) {
-  const [items,setItems]=useState<OpReservation[]>([]);
-  const [loading,setLoading]=useState(true),[error,setError]=useState("");
-  const [tab,setTab]=useState<"proximos"|"historico">("proximos");
-  const [revision,setRevision]=useState(0);
-  const [months,setMonths]=useState<Record<string,boolean>>({});
-  const [weeks,setWeeks]=useState<Record<string,boolean>>({});
-  const [details,setDetails]=useState<Record<string,boolean>>({});
-  useEffect(()=>{let live=true;setLoading(true);setError("");listReservations(token).then(x=>{if(live){setItems(x.items);setLoading(false);}}).catch(e=>{if(live){setError(errorText(e));setLoading(false);}});return()=>{live=false;};},[token,revision]);
-  const today=mvdNow().date;
-  const filtered=items.filter(r=>tab==="proximos"?(r.pickup_date>=today&&ACTIVE_STATUSES.includes(r.status)):(r.pickup_date<today||!ACTIVE_STATUSES.includes(r.status)));
-  filtered.sort((a,b)=>{const x=a.pickup_date+a.pickup_time,y=b.pickup_date+b.pickup_time;return tab==="proximos"?x.localeCompare(y):y.localeCompare(x);});
-  const grouped=new Map<string,Map<string,OpReservation[]>>();
-  for(const r of filtered){const m=r.pickup_date.slice(0,7),w=weekStart(r.pickup_date);if(!grouped.has(m))grouped.set(m,new Map());if(!grouped.get(m)!.has(w))grouped.get(m)!.set(w,[]);grouped.get(m)!.get(w)!.push(r);}
-  return <section className="mx-auto max-w-3xl px-4 pb-16 pt-11 sm:px-6">
-    <div className="flex items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-[.2em] text-primary">Tu espacio</p><h1 className="mt-2 font-display text-3xl text-[#f7efdf]">Mis traslados</h1></div><Button size="sm" variant="outline" onClick={()=>setRevision(n=>n+1)}><RefreshCw className="mr-2 size-4"/> Actualizar</Button></div>
-    <p className="mt-3 text-sm text-muted-foreground">Consultá el estado real de tus reservas, agrupadas por mes y por semana.</p>
-    <button type="button" onClick={()=>go("vincular")} className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-left hover:border-primary/60">
-      <span className="flex items-center gap-3"><Fingerprint className="size-6 text-primary"/><span><strong className="block text-sm">Activar acceso con huella</strong><span className="block text-xs text-muted-foreground">Ingresá más rápido desde este dispositivo</span></span></span>
-      <ArrowRight className="size-4 text-primary"/>
-    </button>
-    <div className="mt-7 grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary/40 p-1">
-      <button type="button" onClick={()=>setTab("proximos")} className={"min-h-11 rounded-lg text-sm font-semibold "+(tab==="proximos"?"bg-primary text-primary-foreground":"text-muted-foreground")}>Próximos</button>
-      <button type="button" onClick={()=>setTab("historico")} className={"min-h-11 rounded-lg text-sm font-semibold "+(tab==="historico"?"bg-primary text-primary-foreground":"text-muted-foreground")}>Historial</button>
-    </div>
-    {loading?<p className="mt-8 text-sm text-muted-foreground">Cargando tus reservas…</p>:error?<p role="alert" className="mt-5 rounded-xl border border-warning/40 p-4 text-warning">{error}</p>:filtered.length===0?<div className="panel mt-6 p-8 text-center"><History className="mx-auto size-10 text-primary"/><h2 className="mt-4 font-display text-xl">Todavía no hay viajes aquí</h2><p className="mt-2 text-sm text-muted-foreground">Tus traslados aparecerán automáticamente.</p><Button onClick={()=>go("reserva")} className="mt-5">Programar traslado</Button></div>:
-      <div className="mt-6 space-y-3">{[...grouped].map(([month,byWeek])=><div key={month} className="overflow-hidden rounded-xl border border-border bg-card/80">
-        <button type="button" onClick={()=>setMonths(v=>({...v,[month]:v[month]===false?true:false}))} className="flex min-h-14 w-full items-center justify-between px-4 text-left"><strong className="font-display">{monthLabel(month+"-01")}</strong><span className="flex items-center gap-2 text-xs text-muted-foreground">{[...byWeek.values()].reduce((n,a)=>n+a.length,0)} viajes {months[month]===false?<ChevronDown className="size-4"/>:<ChevronUp className="size-4"/>}</span></button>
-        {months[month]!==false&&<div className="border-t border-border/70 px-3 pb-3">{[...byWeek].map(([week,rows])=><div key={week}>
-          <button type="button" className="flex min-h-11 w-full items-center justify-between px-2 text-sm text-muted-foreground" onClick={()=>setWeeks(v=>({...v,[week]:v[week]===false?true:false}))}><span>Semana del {formatDate(week)}</span><span className="flex gap-2">{rows.length}{weeks[week]===false?<ChevronDown className="size-4"/>:<ChevronUp className="size-4"/>}</span></button>
-          {weeks[week]!==false&&<div className="space-y-2 pb-2">{rows.map(r=><div key={r.id} className="rounded-xl border border-border bg-background/35 p-4">
-            <button type="button" className="flex w-full items-start justify-between gap-2 text-left" onClick={()=>setDetails(v=>({...v,[r.id]:!v[r.id]}))}>
-              <span><strong className="block text-sm">{formatDateTime24(r.pickup_date,r.pickup_time)}</strong><span className="mt-2 block break-words text-xs text-muted-foreground">{r.origin_text} → {r.destination_text}</span></span>
-              <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[11px] text-primary">{OP_STATUS_LABEL[r.status]??r.status}</span>
-            </button>
-            {details[r.id]&&<div className="mt-4 space-y-2 border-t border-border pt-4"><Detail label="Código" value={r.code}/><Detail label="Origen" value={r.origin_text}/>{(r.stops??[]).map(s=><Detail key={s.position} label={"Parada "+s.position} value={s.address_text}/>)}<Detail label="Destino" value={r.destination_text}/>{r.passenger_name&&<Detail label="Viaja" value={r.passenger_name+(r.passenger_phone?" · "+r.passenger_phone:"")}/>}
-              {r.quote_final_total!=null&&<Detail label="Presupuesto" value={"$ "+r.quote_final_total}/>}
-              {r.comments&&<Detail label="Comentarios" value={r.comments}/>}
-            </div>}
-            <button type="button" onClick={()=>onRepeat(r)} className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-primary hover:underline"><RefreshCw className="size-3.5"/> Repetir este recorrido</button>
-          </div>)}</div>}
-        </div>)}</div>}
-      </div>)}</div>}
-  </section>;
+  return <CustomerTripHistory token={token} onReserve={()=>go("reserva")}
+    onActivateFingerprint={()=>go("vincular")} onRepeat={onRepeat}/>;
 }
+
 function TrasladosWeb() {
   const session=useCustomerSession();
   const [view,setView]=useState<View>("inicio"),[wanted,setWanted]=useState<"reserva"|"historial">("reserva");
