@@ -3,9 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/auth/passkey")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
         const { passkeyStatus } = await import("@/lib/passkey.server");
-        return Response.json({ enabled: passkeyStatus() }, { headers: { "Cache-Control": "no-store" } });
+        return Response.json({ enabled: passkeyStatus(request) }, { headers: { "Cache-Control": "no-store" } });
       },
       POST: async ({ request }) => {
         const { passkeyHandler, passkeyError } = await import("@/lib/passkey.server");
