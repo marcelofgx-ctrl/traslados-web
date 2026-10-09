@@ -12,13 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UyLocationPicker } from "@/components/UyLocationPicker";
-import { TimeSelect24 } from "@/components/TimeSelect24";
+import { BookingAvailability } from "@/components/BookingAvailability";
 import { PasskeyAccess } from "@/components/PasskeyAccess";
 import { CustomerTripHistory } from "@/components/CustomerTripHistory";
 import { CustomerShareTools } from "@/components/CustomerShareTools";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
-  ACTIVE_STATUSES, OP_STATUS_LABEL, createReservation, getProfile,
+  ACTIVE_STATUSES, OP_STATUS_LABEL, AVAILABILITY_REASON, checkAvailability, createReservation, getProfile,
   listReservations, login, logout, type Loc, type OpReservation,
 } from "@/lib/operativa/api";
 import { useCustomerSession, writeSession } from "@/lib/operativa/session";
@@ -38,7 +38,11 @@ type Stop = { id: number; value: Loc | null };
 const CONTACT = "+59897228175";
 const WHATSAPP = "https://wa.me/59897228175";
 const buttonBase = "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition";
-function errorText(e:unknown) { return e instanceof Error ? e.message : "No se pudo completar la operación."; }
+function errorText(e:unknown) {
+  if(e instanceof Error && /HORARIO_NO_DISPONIBLE/.test(e.message))
+    return "Ese horario dejó de estar disponible. Volvé a consultar la agenda y elegí otra hora.";
+  return e instanceof Error ? e.message : "No se pudo completar la operación.";
+}
 function Detail({ label, value }: {label:string,value:string}) { return <div className="flex flex-col gap-1 border-b border-border/70 pb-2 text-sm last:border-0 sm:flex-row sm:gap-4"><span className="shrink-0 text-muted-foreground sm:w-28">{label}</span><span className="break-words font-medium">{value}</span></div>; }
 function Panel({ title, icon, children }: {title:string,icon:ReactNode,children:ReactNode}) {
   return <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-[0_16px_38px_rgba(0,0,0,.09)] sm:p-6">
@@ -152,6 +156,36 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   const [stops,setStops]=useState<Stop[]>(()=>previous?.stops?.map((x,i)=>({id:i+1,value:{text:x.address_text,lat:x.lat,lng:x.lng,department:x.department}}))??[]),[nextId,setNextId]=useState((previous?.stops?.length??0)+1);
   const [comments,setComments]=useState(""),[forOther,setForOther]=useState(Boolean(previous?.passenger_name)),[otherName,setOtherName]=useState(previous?.passenger_name??""),[otherPhone,setOtherPhone]=useState(previous?.passenger_phone??"");
   const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false);
+  const [availableRevision,setAvailableRevision]=useState(0);
+  const [scheduleMessage,setScheduleMessage]=useState("");
+  const [alternatives,setAlternatives]=useState<string[]>([]);
+  function selectDate(value:string){setDate(value);setTime("");setScheduleMessage("");setAlternatives([]);}
+  function selectHour(value:string){setTime(value);setScheduleMessage("");setAlternatives([]);}
+  function rejectTime(message:string,suggestions:string[]=[]){
+    setConfirm(false);
+    setScheduleMessage(message);
+    setAlternatives(suggestions);
+    setAvailableRevision(n=>n+1);
+  }
+  async function verifySelectedTime() {
+    if(!origin||!destination||!date||!time)throw new Error("Elegí un recorrido, fecha y hora.");
+    const current=await checkAvailability(token,date,time,null,origin,destination);
+    if(!current.available){
+      const reason=AVAILABILITY_REASON[current.reason]??"La agenda no permite reservar en ese horario.";
+      rejectTime(reason,current.suggested_times??[]);
+      return false;
+    }
+    return true;
+  }
+  async function review(){
+    if(errors.length){toast.error(errors[0]??"Completá el formulario");return;}
+    setBusy(true);
+    try{
+      if(await verifySelectedTime())setConfirm(true);
+      else toast.error("La hora elegida no está disponible. Elegí una alternativa.");
+    }catch(e){setScheduleMessage(errorText(e));toast.error("No pudimos comprobar el horario. Intentá nuevamente.");}
+    finally{setBusy(false);}
+  }
   const errors:string[]=[];
   if(!origin)errors.push("Seleccioná el origen.");
   if(!destination)errors.push("Seleccioná el destino.");
@@ -163,6 +197,10 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
     if(!origin||!destination||errors.length){toast.error(errors[0]??"Faltan datos.");return;}
     setBusy(true);
     try {
+      if(!(await verifySelectedTime())){
+        toast.error("Ese horario ya no está libre. Elegí otra hora.");
+        return;
+      }
       // Compatibility: older APK versions do not yet read the structured stop table.
       const notes=[comments.trim(),...stops.map((s,i)=>String(i+1)+". Parada: "+(s.value?.text??"")),forOther?"Viaja: "+otherName.trim()+" · "+otherPhone.trim():""].filter(Boolean).join("\n");
       const result=await createReservation(token,{
@@ -172,7 +210,11 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         passengerPhone:forOther?otherPhone.trim():null,
       });
       onSent(result.code);
-    }catch(e){toast.error(errorText(e));}finally{setBusy(false);}
+    }catch(e){
+      if(e instanceof Error && /HORARIO_NO_DISPONIBLE/.test(e.message)){
+        rejectTime(errorText(e)); toast.error("La disponibilidad cambió. Elegí otra hora.");
+      }else toast.error(errorText(e));
+    }finally{setBusy(false);}
   }
   return <section className="mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-primary">Tu próximo viaje</p>
@@ -190,10 +232,9 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
       <p className="text-sm leading-6 text-muted-foreground">La reserva será una solicitud pendiente de confirmación. El conductor confirmará disponibilidad, duración del recorrido y presupuesto.</p>
       <div className="flex flex-col gap-3 sm:flex-row"><Button className="h-12 flex-1" variant="outline" onClick={()=>setConfirm(false)} disabled={busy}><ArrowLeft className="mr-2 size-4"/> Editar</Button><Button className="h-12 flex-[2]" disabled={busy} onClick={()=>void submit()}>{busy?"Enviando…":"Enviar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></div>
     </div>:<div className="mt-7 space-y-5">
-      <Panel title="Día y hora" icon={<CalendarDays className="size-5"/>}><div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2"><Label htmlFor="pickup-date">Fecha</Label><Input id="pickup-date" type="date" min={mvdNow().date} className="h-12" value={date} onChange={e=>setDate(e.target.value)}/></div>
-        <TimeSelect24 id="pickup-hour" value={time} onChange={setTime}/>
-        <div className="sm:col-span-2"><Label>Pasajeros</Label><div className="mt-2 flex items-center gap-4"><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button><strong className="text-lg">{passengers}</strong><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button><Users className="size-4 text-muted-foreground"/></div></div>
+      <Panel title="Información del viaje" icon={<CalendarDays className="size-5"/>}><div className="space-y-3">
+        <p className="text-sm text-muted-foreground">Primero elegí tu recorrido. Más abajo podrás consultar los días y horarios que admite nuestra agenda.</p>
+        <div><Label>Pasajeros</Label><div className="mt-2 flex items-center gap-4"><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button><strong className="text-lg">{passengers}</strong><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button><Users className="size-4 text-muted-foreground"/></div></div>
       </div></Panel>
       <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-6">
         <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={setOrigin}/>
@@ -208,13 +249,23 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
         <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={setDestination}/></div>
       </div></Panel>
+      <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
+        onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
+      {scheduleMessage&&<div role="alert" className="rounded-xl border border-amber-400/35 bg-amber-400/10 p-4">
+        <p className="text-sm font-semibold text-[#e8c68a]">El horario solicitado no está disponible</p>
+        <p className="mt-1 text-sm leading-6 text-[#d9c8a8]">{scheduleMessage}</p>
+        {alternatives.length>0&&<div className="mt-3 flex flex-wrap gap-2">
+          {alternatives.map(alt=><button key={alt} type="button" onClick={()=>selectHour(alt)}
+            className="min-h-10 rounded-lg border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary hover:bg-primary/20">{alt} h</button>)}
+        </div>}
+      </div>}
       <Panel title="Información adicional" icon={<UserRound className="size-5"/>}><div className="space-y-4">
         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={forOther} onChange={e=>setForOther(e.target.checked)} className="size-4"/> Reservo para otra persona</label>
         {forOther&&<div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="other-name">Nombre del pasajero</Label><Input id="other-name" value={otherName} onChange={e=>setOtherName(e.target.value)} placeholder="Nombre y apellido"/></div><div className="space-y-2"><Label htmlFor="other-phone">Celular del pasajero</Label><Input id="other-phone" inputMode="tel" value={otherPhone} onChange={e=>setOtherPhone(e.target.value)} placeholder="099 123 456"/></div></div>}
         <div className="space-y-2"><Label htmlFor="booking-comments">Comentarios (opcional)</Label><Textarea id="booking-comments" rows={3} maxLength={1000} value={comments} onChange={e=>setComments(e.target.value)} placeholder="Vuelo, equipaje, necesidades especiales…"/></div>
       </div></Panel>
       {errors.length>0&&<p className="text-xs text-muted-foreground">{errors[0]}</p>}
-      <Button className="h-14 w-full text-base" disabled={errors.length>0} onClick={()=>setConfirm(true)}>Revisar solicitud <ArrowRight className="ml-2 size-4"/></Button>
+      <Button className="h-14 w-full text-base" disabled={errors.length>0||busy} onClick={()=>void review()}>{busy?"Comprobando agenda…":"Revisar solicitud"} <ArrowRight className="ml-2 size-4"/></Button>
     </div>}
   </section>;
 }
