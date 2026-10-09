@@ -34,6 +34,8 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
+      - name: Pruebas seguridad origen WebAuthn
+        run: bun test tests/passkey-origin.test.ts
       - name: Compilar web sin Lovable
         run: bun run build
       - name: Comprobar TypeScript estrictamente
