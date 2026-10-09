@@ -62,4 +62,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/uy-pois.json
           git commit -m "datos: índice actualizado de lugares OSM Uruguay [skip ci]"
-          git push
+          # El repositorio puede cambiar durante los ~2 minutos de generación.
+          # Integrar esas actualizaciones antes de publicar el nuevo índice.
+          git pull --rebase origin "$(git branch --show-current)"
+          git push origin "HEAD:$(git branch --show-current)"
