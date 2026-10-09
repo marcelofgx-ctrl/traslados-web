@@ -204,6 +204,13 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
       </div></Panel>
       <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-6">
         <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={v=>{setOrigin(v);selectHour("");}}/>
+        {origin&&<button type="button" disabled={!destination} onClick={()=>document.getElementById("booking-agenda")?.scrollIntoView({behavior:"smooth",block:"start"})}
+          className="premium-glass flex w-full items-center justify-between gap-3 rounded-xl border border-primary/25 px-4 py-3 text-left transition hover:border-primary/50 disabled:opacity-70">
+          <span className="flex items-center gap-3"><Clock3 className="size-5 shrink-0 text-primary"/><span>
+            <span className="block text-xs font-semibold text-[#ecd5a5]">Disponibilidad según tu recorrido</span>
+            <span className="mt-1 block text-xs leading-5 text-[#b8cbc2]">{destination?"Consultá los horarios para este origen y destino.":"Elegí el destino para ver los días y horas de la agenda."}</span>
+          </span></span><ArrowRight className="size-4 shrink-0 text-primary"/>
+        </button>}
         {stops.map((s,i)=><div key={s.id} className="border-t border-border pt-5">
           <div className="mb-2 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[.15em] text-primary">Parada intermedia {i+1}</p><div className="flex items-center gap-1">
             <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===0} aria-label="Subir parada" onClick={()=>{shift(i,-1);selectHour("");}}><MoveUp className="size-4"/></button>
