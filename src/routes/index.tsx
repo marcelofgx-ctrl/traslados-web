@@ -229,16 +229,12 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         {forOther&&<Detail label="Viaja" value={otherName+" · "+otherPhone}/>}
         {comments&&<Detail label="Comentarios" value={comments}/>}
       </div></Panel>
-      <p className="text-sm leading-6 text-muted-foreground">La reserva será una solicitud pendiente de confirmación. El conductor confirmará disponibilidad, duración del recorrido y presupuesto.</p>
+      <p className="text-sm leading-6 text-muted-foreground">Esto envía una solicitud sin cobro. El conductor te enviará su presupuesto definitivo, que podrás aceptar o rechazar desde «Mis traslados».</p>
       <div className="flex flex-col gap-3 sm:flex-row"><Button className="h-12 flex-1" variant="outline" onClick={()=>setConfirm(false)} disabled={busy}><ArrowLeft className="mr-2 size-4"/> Editar</Button><Button className="h-12 flex-[2]" disabled={busy} onClick={()=>void submit()}>{busy?"Enviando…":"Enviar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></div>
-    </div>:<div className="mt-7 space-y-5">
-      <Panel title="Información del viaje" icon={<CalendarDays className="size-5"/>}><div className="space-y-3">
-        <p className="text-sm text-muted-foreground">Primero elegí tu recorrido. Más abajo podrás consultar los días y horarios que admite nuestra agenda.</p>
-        <div><Label>Pasajeros</Label><div className="mt-2 flex items-center gap-4"><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button><strong className="text-lg">{passengers}</strong><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button><Users className="size-4 text-muted-foreground"/></div></div>
-      </div></Panel>
-      <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-6">
-        <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={v=>{setOrigin(v);selectHour("");}}/>
-        {stops.map((s,i)=><div key={s.id} className="border-t border-border pt-5">
+    </div>:<div className="mt-5 space-y-3">
+      <Panel title="Tu recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-3">
+        <UyLocationPicker id="from-location" variant="origin" label="01 · ORIGEN" value={origin} onChange={v=>{setOrigin(v);selectHour("");}}/>
+        {stops.map((s,i)=><div key={s.id} className="border-t border-border/60 pt-3">
           <div className="mb-2 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[.15em] text-primary">Parada intermedia {i+1}</p><div className="flex items-center gap-1">
             <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===0} aria-label="Subir parada" onClick={()=>{shift(i,-1);selectHour("");}}><MoveUp className="size-4"/></button>
             <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===stops.length-1} aria-label="Bajar parada" onClick={()=>{shift(i,1);selectHour("");}}><MoveDown className="size-4"/></button>
@@ -246,11 +242,24 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
           </div></div>
           <UyLocationPicker id={"stop-"+s.id} label="Dirección de parada" value={s.value} onChange={loc=>{setStops(v=>v.map(x=>x.id===s.id?{...x,value:loc}:x));selectHour("");}}/>
         </div>)}
-        <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
-        <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
+        <Button variant="outline" disabled={stops.length>=8} className="min-h-10 w-full border-dashed text-sm" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
+        <div className="border-t border-border/50 pt-3"><UyLocationPicker id="to-location" variant="destination" label="DESTINO FINAL" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
       </div></Panel>
       <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
         onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/65 bg-card/60 px-4 py-2.5">
+        <span className="flex items-center gap-2 text-sm font-medium"><Users className="size-4 text-primary"/> Pasajeros</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="size-9" aria-label="Quitar pasajero" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button>
+          <strong className="min-w-6 text-center font-display text-base tabular-nums">{passengers}</strong>
+          <Button variant="outline" size="icon" className="size-9" aria-label="Agregar pasajero" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button>
+        </div>
+      </div>
+      <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
+        <p className="font-semibold text-[#f0dfbc]">Precio orientativo y presupuesto del conductor</p>
+        <p className="mt-1 leading-5 text-[#c7d4ce]">La tarifa estimada necesita distancia real por carretera y tiempo de ruta. No mostramos kilómetros ni precios calculados en línea recta. Una vez enviada tu solicitud, recibirás el presupuesto definitivo para aceptarlo o rechazarlo desde «Mis traslados».</p>
+        <p className="mt-1.5 text-xs text-primary">No se realiza ningún cobro al enviar la solicitud.</p>
+      </div>
       {scheduleMessage&&<div role="alert" className="rounded-xl border border-amber-400/35 bg-amber-400/10 p-4">
         <p className="text-sm font-semibold text-[#e8c68a]">El horario solicitado no está disponible</p>
         <p className="mt-1 text-sm leading-6 text-[#d9c8a8]">{scheduleMessage}</p>

@@ -78,18 +78,18 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
   }
   return <div className="overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-[#19383b]/90 to-[#102b30]/90 shadow-[0_14px_30px_rgba(0,0,0,.13)]">
     <button type="button" onClick={()=>setExpanded(v=>!v)} aria-expanded={expanded}
-      className="flex min-h-16 w-full items-center justify-between gap-3 px-4 text-left sm:px-5">
+      className="flex min-h-14 w-full items-center justify-between gap-2 px-3 text-left sm:px-5">
       <span className="flex items-center gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
           <CalendarCheck2 className="size-5 text-primary"/>
         </span>
-        <span><strong className="block font-display text-lg text-[#f7eddd]">Disponibilidad para tu traslado</strong>
+        <span><strong className="block font-display text-base text-[#f7eddd]">Disponibilidad para tu traslado</strong>
           <span className="mt-0.5 block text-xs text-[#bfcecb]">{selected?("Seleccionaste "+time+" h"):"Elegí el día y consultá las horas sugeridas"}</span>
         </span>
       </span>
       {expanded?<ChevronLeft className="-rotate-90 size-5 shrink-0 text-primary"/>:<ChevronRight className="size-5 shrink-0 text-primary"/>}
     </button>
-    {expanded&&<div className="space-y-4 border-t border-primary/15 px-4 pb-5 pt-4 sm:px-5">
+    {expanded&&<div className="space-y-3 border-t border-primary/15 px-3 pb-4 pt-3 sm:px-5">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="pickup-available-date" className="flex items-center gap-2"><CalendarDays className="size-4 text-primary"/> Elegí el día</Label>
         <div className="flex items-center gap-1">
@@ -108,10 +108,10 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
         {days.map(day=>{
           const parts=dateDescription(day),active=day===date;
           return <button key={day} type="button" onClick={()=>changeDate(day)} aria-pressed={active}
-            className={"flex min-h-20 min-w-[68px] flex-1 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 text-xs transition sm:min-w-[76px] "+
+            className={"flex min-h-[66px] min-w-[62px] flex-1 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 text-xs transition sm:min-w-[70px] "+
               (active?"border-primary bg-primary/15 text-primary shadow-[inset_0_0_0_1px_rgba(209,172,97,.12)]":"border-white/10 bg-black/15 text-[#cfdbd6] hover:border-primary/40")}>
             <span className="capitalize">{parts.weekday}</span>
-            <strong className="font-display text-xl tabular-nums">{parts.day}</strong>
+            <strong className="font-display text-lg tabular-nums">{parts.day}</strong>
             <span className="capitalize">{parts.month}</span>
           </button>;
         })}

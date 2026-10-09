@@ -59,8 +59,8 @@ function TripCard({
   const duration=formatNumber(trip.route_duration_min,"min");
   return <article className="overflow-hidden rounded-2xl border border-border/80 bg-[#102b30]/85 shadow-[0_10px_28px_rgba(0,0,0,.10)] transition-colors hover:border-primary/30">
     <button type="button" aria-expanded={expanded} aria-label={(expanded?"Contraer":"Ver detalles de")+" viaje "+trip.code}
-      onClick={toggle} className="flex w-full items-start gap-3 px-3.5 py-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:px-5">
-      <span className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+      onClick={toggle} className="flex w-full items-start gap-2.5 px-3 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:px-5">
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
         <CalendarDays className="size-4"/>
       </span>
       <span className="min-w-0 flex-1">
@@ -72,12 +72,15 @@ function TripCard({
           <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary"/>
           <span className="min-w-0 break-words">{trip.origin_text} <span className="mx-1 text-primary">→</span> {trip.destination_text}</span>
         </span>
-        <span className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span className={"rounded-full border px-2.5 py-1 text-[11px] font-semibold "+statusStyle(trip.status)}>
             {OP_STATUS_LABEL[trip.status]??trip.status}
           </span>
           {trip.stops?.length ? <span className="text-[11px] text-muted-foreground">{trip.stops.length} parada{trip.stops.length===1?"":"s"}</span>:null}
-          {trip.quote_final_total!=null && <span className="text-xs font-medium text-primary">{currency.format(trip.quote_final_total)}</span>}
+          {trip.quote_status==="ENVIADO" && trip.status==="PENDIENTE"
+            ? <span className="rounded-md border border-primary/45 bg-primary/15 px-2 py-1 text-xs font-semibold text-primary">Presupuesto recibido{trip.quote_final_total!=null ? " · "+currency.format(trip.quote_final_total) : ""} · Ver y responder</span>
+            : trip.quote_final_total!=null ? <span className="text-xs font-medium text-primary">Presupuesto: {currency.format(trip.quote_final_total)}</span>
+            : trip.status==="PENDIENTE" ? <span className="text-[11px] text-muted-foreground">Presupuesto pendiente del conductor</span> : null}
         </span>
       </span>
       <span className="mt-2 shrink-0 text-primary">{expanded?<ChevronDown className="size-5"/>:<ChevronRight className="size-5"/>}</span>
@@ -92,7 +95,7 @@ function TripCard({
       <Info label="Viaja" value={trip.passenger_name??null}/>
       <Info label="Celular del pasajero" value={trip.passenger_phone??null}/>
       <Info label="Recorrido estimado" value={[distance,duration].filter(Boolean).join(" · ")||null}/>
-      <Info label="Presupuesto" value={trip.quote_final_total!=null?currency.format(trip.quote_final_total):null}/>
+      <Info label="Presupuesto definitivo del conductor" value={trip.quote_final_total!=null?currency.format(trip.quote_final_total):trip.status==="PENDIENTE"?"Pendiente de envío":null}/>
       <Info label="Presupuesto incluye" value={trip.quote_includes??null}/>
       <Info label="Observaciones" value={trip.comments??null}/>
       {quoteReady&&<div className="mt-3 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
@@ -192,37 +195,37 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
   }
 
   return <section className="mx-auto max-w-4xl px-4 pb-16 pt-9 sm:px-7">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><p className="text-xs font-semibold uppercase tracking-[.19em] text-primary">Tu espacio personal</p>
-        <h1 className="mt-2 font-display text-3xl text-[#f8eee0] sm:text-4xl">Mis traslados</h1>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div><p className="text-[11px] font-semibold uppercase tracking-[.19em] text-primary">Tu espacio personal</p>
+        <h1 className="mt-1 font-display text-[1.65rem] text-[#f8eee0] sm:text-4xl">Mis traslados</h1>
       </div>
       <Button variant="outline" size="sm" disabled={loading} onClick={()=>setRevision(v=>v+1)} className="min-h-10 gap-2">
         <RefreshCw className={"size-4 "+(loading?"animate-spin":"")}/> Actualizar
       </Button>
     </div>
-    <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Toda tu agenda y el historial de viajes, organizados para encontrar cada reserva en segundos.</p>
+    <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-muted-foreground">Tus próximos viajes, presupuestos e historial en un mismo lugar.</p>
 
-    <div className="mt-6 grid grid-cols-2 gap-3">
+    <div className="mt-4 grid grid-cols-2 gap-2">
       <button type="button" onClick={()=>changeTab("proximos")} aria-pressed={tab==="proximos"}
-        className={"min-h-24 rounded-2xl border px-4 py-3 text-left transition "+(tab==="proximos"?"border-primary/55 bg-primary/10 shadow-[0_0_0_1px_rgba(220,180,100,.08)]":"border-border bg-card/70 hover:border-primary/30")}>
+        className={"min-h-[76px] rounded-xl border px-3 py-2.5 text-left transition "+(tab==="proximos"?"border-primary/55 bg-primary/10 shadow-[0_0_0_1px_rgba(220,180,100,.08)]":"border-border bg-card/70 hover:border-primary/30")}>
         <CalendarClock className={"size-5 "+(tab==="proximos"?"text-primary":"text-muted-foreground")}/>
-        <span className="mt-2 block text-xs text-muted-foreground">Próximos</span>
+        <span className="mt-1 block text-xs text-muted-foreground">Próximos</span>
         <span className="block font-display text-2xl font-semibold tabular-nums">{loading?"—":main}</span>
       </button>
       <button type="button" onClick={()=>changeTab("historico")} aria-pressed={tab==="historico"}
-        className={"min-h-24 rounded-2xl border px-4 py-3 text-left transition "+(tab==="historico"?"border-primary/55 bg-primary/10 shadow-[0_0_0_1px_rgba(220,180,100,.08)]":"border-border bg-card/70 hover:border-primary/30")}>
+        className={"min-h-[76px] rounded-xl border px-3 py-2.5 text-left transition "+(tab==="historico"?"border-primary/55 bg-primary/10 shadow-[0_0_0_1px_rgba(220,180,100,.08)]":"border-border bg-card/70 hover:border-primary/30")}>
         <History className={"size-5 "+(tab==="historico"?"text-primary":"text-muted-foreground")}/>
-        <span className="mt-2 block text-xs text-muted-foreground">Historial</span>
+        <span className="mt-1 block text-xs text-muted-foreground">Historial</span>
         <span className="block font-display text-2xl font-semibold tabular-nums">{loading?"—":historical}</span>
       </button>
     </div>
 
-    <div className="mt-5 rounded-2xl border border-border/80 bg-[#132f33]/75 p-3.5 sm:p-4">
+    <div className="mt-3 rounded-xl border border-border/80 bg-[#132f33]/75 p-3 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label htmlFor="trip-search" className="text-xs font-semibold uppercase tracking-[.14em] text-primary">{tab==="proximos"?"Agenda de viajes":"Archivo de traslados"}</label>
         <span className="text-xs tabular-nums text-muted-foreground">{visible.length} de {base.length} viajes</span>
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-2 flex gap-2">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground"/>
           <Input id="trip-search" value={filters.search} onChange={e=>updateFilter("search",e.target.value)}
@@ -275,7 +278,7 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
           <span className="text-xs text-muted-foreground">Los filtros se aplican al instante.</span>
         </div>
       </div>}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-3">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2">
         <div className="flex gap-1">
           <button type="button" onClick={()=>expandAll(true)} disabled={visible.length===0} className="rounded-lg px-2 py-1.5 text-xs text-primary hover:bg-primary/10 disabled:opacity-40">Desplegar todo</button>
           <button type="button" onClick={()=>expandAll(false)} disabled={visible.length===0} className="rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary disabled:opacity-40">Plegar todo</button>
@@ -296,12 +299,12 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
       {base.length?<Button variant="outline" onClick={()=>setFilters(INITIAL_TRIP_FILTERS)} className="mt-5">Limpiar filtros</Button>
       :<Button onClick={onReserve} className="mt-5">Programar un traslado <ArrowRight className="ml-2 size-4"/></Button>}
     </div>:
-    <div className="mt-5 space-y-3">
+    <div className="mt-3 space-y-2">
       {grouped.map(year=>{
         const ykey="year:"+year.year, yopen=isOpen(ykey);
         return <div key={year.year} className="overflow-hidden rounded-2xl border border-primary/20 bg-[#173438]/75">
           <button type="button" onClick={()=>toggle(ykey)} aria-expanded={yopen}
-            className="flex min-h-14 w-full items-center justify-between gap-3 px-4 text-left hover:bg-primary/5">
+            className="flex min-h-11 w-full items-center justify-between gap-3 px-3 text-left hover:bg-primary/5">
             <span className="flex items-center gap-3"><span className="font-display text-lg text-[#f4ebda]">{year.year}</span><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">{year.count}</span></span>
             {yopen?<ChevronDown className="size-5 text-primary"/>:<ChevronRight className="size-5 text-primary"/>}
           </button>
@@ -309,7 +312,7 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
             const mkey="month:"+month.key,mopen=isOpen(mkey);
             return <div key={month.key} className="overflow-hidden rounded-xl border border-border bg-card/85">
               <button type="button" aria-expanded={mopen} onClick={()=>toggle(mkey)}
-                className="flex min-h-12 w-full items-center justify-between gap-3 px-3.5 text-left hover:bg-primary/5 sm:px-4">
+                className="flex min-h-10 w-full items-center justify-between gap-3 px-3 text-left hover:bg-primary/5 sm:px-4">
                 <span className="flex items-center gap-2 text-sm font-semibold text-[#eee1cc]"><CalendarDays className="size-4 text-primary"/>{monthLabel(month.key+"-01")}</span>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">{month.count} viajes {mopen?<ChevronDown className="size-4"/>:<ChevronRight className="size-4"/>}</span>
               </button>
@@ -317,7 +320,7 @@ export function CustomerTripHistory({token,onReserve,onActivateFingerprint,onRep
                 const wkey="week:"+month.key+":"+week.key,wopen=isOpen(wkey);
                 return <div key={wkey} className="rounded-lg border border-border/55 bg-background/20">
                   <button type="button" aria-expanded={wopen} onClick={()=>toggle(wkey)}
-                    className="flex min-h-11 w-full items-center justify-between gap-2 px-3 text-left">
+                    className="flex min-h-9 w-full items-center justify-between gap-2 px-2.5 text-left">
                     <span className="flex items-center gap-2 text-xs text-[#c9d9d4]"><Clock3 className="size-3.5 text-primary"/> Semana del {formatDate(week.key)}</span>
                     <span className="flex items-center gap-2 text-xs text-muted-foreground">{week.items.length} {wopen?<ChevronDown className="size-4"/>:<ChevronRight className="size-4"/>}</span>
                   </button>
