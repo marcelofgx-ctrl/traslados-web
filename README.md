@@ -66,3 +66,20 @@ La portada móvil mantiene la identidad petróleo/dorado con cabecera y hero má
 La sección comercial incorpora compartir por el sistema del teléfono, copiar el enlace, descargar contacto .vcf y ayuda para crear acceso directo Android. El selector horario requiere seleccionar hora antes de minutos para evitar una reserva a medianoche involuntaria.
 
 **Verificación:** pruebas en GitHub Actions con ambos Bun, TypeScript estricto, render HTTP 200 de la portada y tests unitarios de filtros/seguridad. **Pendiente:** verificar la última publicación de Cloudflare, comprobar en un celular real con cuenta de prueba las operaciones de presupuestos/cancelación y la passkey; el build verde no demuestra que ya esté desplegado ni valida integración punta a punta. No anunciar disponibilidad comercial hasta esas pruebas.
+
+
+## Buscador de lugares de Uruguay (v16.3)
+
+La web ahora combina **tres fuentes** para los campos origen y destino:
+
+1. **Índice nacional de POIs OSM (sin API key):** `public/data/uy-pois.json`, generado automáticamente por `scripts/build-uy-pois.py` a partir del extracto de Geofabrik Uruguay. Primera extracción verificada: 22.499 lugares, incluyendo Punta Carretas Shopping, Plaza Italia Shopping Outlet y Shopping Tres Cruces. El índice se descarga una vez y se mantiene en caché durante la sesión.
+2. **IDE Uruguay** para calles y números, por una consulta nacional directa (sin filtrar resultados por Montevideo o Canelones).
+3. **Geoapify opcional** para reforzar cobertura de empresas y lugares, activado únicamente cuando el secret `GEOAPIFY_API_KEY` está configurado en Cloudflare.
+
+Las sugerencias se fusionan en paralelo, con coincidencia de palabras por prefijo, tolerancia de tildes y plural: `Punta Carreta Shopping` encuentra `Punta Carretas Shopping`. El área geográfica es siempre Uruguay. Las ubicaciones de comercios se deben confirmar en el mapa cuando el punto de recogida exacto importe, pues el centro de un edificio no siempre corresponde a la entrada.
+
+El flujo de GitHub Actions `.github/workflows/uy-pois-index.yml` actualiza el índice cada lunes. La descarga del extracto es un proceso batch en GitHub, no se consulta a servidores comunitarios por cada búsqueda del cliente.
+
+**Licencia y atribución:** el índice deriva de © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), bajo la licencia [ODbL](https://opendatacommons.org/licenses/odbl/1-0/). En la interfaz se atribuye esta fuente cuando se muestran los resultados OSM. Se debe respetar ODbL y los requisitos de atribución al redistribuir/modificar la base.
+
+**Pendiente:** verificar en el celular la publicación de Cloudflare y la selección de origen/destino reales. Los datos de OSM, aunque extensos, pueden omitir locales recién inaugurados; mantener la combinación con IDE y el proveedor opcional es importante.
