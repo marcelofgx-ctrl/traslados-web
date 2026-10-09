@@ -48,6 +48,7 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
   const [error,setError]=useState("");
   const [manual,setManual]=useState(false);
   const [expanded,setExpanded]=useState(true);
+  const [refresh,setRefresh]=useState(0);
   // Avoid showing old day's availability while fetching a different date/route.
   const routeKey=origin&&destination
     ? [date,origin.lat,origin.lng,destination.lat,destination.lng].join(":") : "";
@@ -63,7 +64,7 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
       .then(result=>{if(active){setResponse(result);setLoadedKey(routeKey);setLoading(false);}})
       .catch(err=>{if(active){setError(err instanceof Error?err.message:"No pudimos consultar tu fecha.");setLoading(false);}});
     return()=>{active=false;};
-  },[token,routeKey,revision]);
+  },[token,routeKey,revision,refresh]);
 
   const data=loadedKey===routeKey?response:null;
   const daysWithHours=data?.available_times??[];
@@ -92,6 +93,11 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="pickup-available-date" className="flex items-center gap-2"><CalendarDays className="size-4 text-primary"/> Elegí el día</Label>
         <div className="flex items-center gap-1">
+          <button type="button" disabled={!origin||!destination||loading}
+            onClick={()=>setRefresh(x=>x+1)} aria-label="Actualizar horarios"
+            className="flex size-9 items-center justify-center rounded-lg border border-border text-primary disabled:opacity-40">
+            <RefreshCw className={"size-4 "+(loading?"animate-spin":"")}/>
+          </button>
           <button type="button" className="flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-30"
             onClick={()=>setWeek(w=>Math.max(0,w-1))} disabled={week===0} aria-label="Semana anterior"><ChevronLeft className="size-4"/></button>
           <button type="button" className="flex size-9 items-center justify-center rounded-lg border border-border"
