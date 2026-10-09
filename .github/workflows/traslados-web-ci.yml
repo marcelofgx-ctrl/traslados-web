@@ -35,7 +35,7 @@ jobs:
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
       - name: Pruebas seguridad origen WebAuthn
-        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts
       - name: Compilar web sin Lovable
         run: bun run build
       - name: Comprobar TypeScript estrictamente
@@ -60,6 +60,14 @@ jobs:
           fi
           grep -q 'Cada viaje' /tmp/traslados-index.html || { echo "Falta contenido home"; head -c 500 /tmp/traslados-index.html; exit 1; }
           echo "SSR HTTP 200: la portada responde correctamente."
+          routepage="$(curl -s -o /tmp/traslados-distancia.html -w '%{http_code}' http://127.0.0.1:8787/distancia)"
+          [ "$routepage" = "200" ] || { echo "Consulta pública de distancia no disponible: $routepage"; exit 1; }
+          grep -q 'Cuántos kilómetros' /tmp/traslados-distancia.html || { echo "No se renderizó el calculador"; exit 1; }
+          missing_provider="$(curl -s -o /tmp/traslados-no-ruta.json -w '%{http_code}' 'http://127.0.0.1:8787/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9')"
+          [ "$missing_provider" = "503" ] || { echo "Sin ORS_API_KEY la ruta debe mostrar estado no disponible: $missing_provider"; exit 1; }
+          grep -q '"not_configured"' /tmp/traslados-no-ruta.json || { echo "Falta aviso sin configuración ORS"; exit 1; }
+          echo "Calculador público y fallback sin proveedor validados."
+
           # Recursos de la PWA que antes faltaban en la web migrada.
           for asset in /manifest.webmanifest /icons/icon-192.png /icons/icon-512.png /icon.svg; do
             code="$(curl -s -o /tmp/traslados-asset -w '%{http_code}' --max-time 5 "http://127.0.0.1:8787$asset")"

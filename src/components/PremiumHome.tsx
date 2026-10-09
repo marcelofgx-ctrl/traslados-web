@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowDownRight, ArrowRight, CalendarCheck2, CalendarDays, CarFront, Check, ChevronRight, Clock3, Compass, Fingerprint, Headphones, MapPin, MessageCircle, Navigation2, Plane, Route as RouteIcon, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
 import { CustomerShareTools } from "@/components/CustomerShareTools";
 const WHATSAPP = "https://wa.me/59897228175?text="+encodeURIComponent("Hola, quisiera consultar por un traslado programado.");
@@ -38,6 +39,9 @@ export function PremiumHome({onBook,onHistory}:Props){
               <CalendarCheck2 className="size-4 text-primary"/> Mis traslados
             </button>
           </div>
+          <Link to="/distancia" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-primary/35 bg-primary/[.07] px-4 text-sm font-semibold text-[#f1d49f] transition hover:border-primary/60 hover:bg-primary/15">
+            <RouteIcon className="size-4"/> Calcular kilómetros de un trayecto <ArrowRight className="size-4"/>
+          </Link>
           <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[12px] text-[#c7d8d1]">
             <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary"/> Presupuesto personalizado</span>
             <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary"/> Recorridos con paradas</span>
