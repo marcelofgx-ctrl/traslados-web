@@ -7,7 +7,7 @@ export type EmailAction = "registro" | "recuperar";
  * Requiere configurar SMTP transaccional + redirect allow-list en Supabase.
  * Nunca fingir que se envió un email si el proveedor no está preparado.
  */
-export const EMAIL_AUTH_READY = import.meta.env.VITE_EMAIL_AUTH_READY === "true";
+export const EMAIL_AUTH_READY = import.meta.env['VITE_EMAIL_AUTH_READY'] === "true";
 
 export function emailConfigured() {
   return EMAIL_AUTH_READY;
