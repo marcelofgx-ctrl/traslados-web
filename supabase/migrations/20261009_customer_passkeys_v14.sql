@@ -147,3 +147,30 @@ REVOKE ALL ON FUNCTION public.customer_passkey_login_v14(text,bigint) FROM PUBLI
 GRANT EXECUTE ON FUNCTION public.customer_passkey_login_v14(text,bigint) TO service_role;
 REVOKE ALL ON FUNCTION public.customer_passkey_recover_v14(text,text,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.customer_passkey_recover_v14(text,text,text,text) TO service_role;
+
+-- Cambio de PIN con una nueva firma WebAuthn válida y actualizada.
+CREATE OR REPLACE FUNCTION public.customer_passkey_reset_pin_v14(p_credential_id text, p_new_counter bigint, p_pin text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+DECLARE v_p public.customer_passkeys;v_c public.customers;v_token text;
+BEGIN
+ IF p_pin !~ '^[0-9]{6}$' THEN RAISE EXCEPTION 'PIN inválido'; END IF;
+ SELECT * INTO v_p FROM public.customer_passkeys WHERE credential_id=p_credential_id FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Credencial no encontrada'; END IF;
+ SELECT * INTO v_c FROM public.customers WHERE id=v_p.customer_id AND active FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Cuenta inactiva'; END IF;
+ IF p_new_counter<0 OR (v_p.counter>0 AND p_new_counter<=v_p.counter) THEN RAISE EXCEPTION 'Contador inválido'; END IF;
+ UPDATE public.customer_passkeys SET counter=p_new_counter,last_used_at=now() WHERE id=v_p.id;
+ UPDATE public.customers SET pin_hash=extensions.crypt(p_pin,extensions.gen_salt('bf',10)),updated_at=now() WHERE id=v_c.id;
+ UPDATE public.customer_sessions SET active=false WHERE customer_id=v_c.id;
+ v_token:=encode(gen_random_bytes(32),'hex');
+ INSERT INTO public.customer_sessions(customer_id,token_hash,device_label,expires_at,active)
+ VALUES(v_c.id,encode(extensions.digest(v_token,'sha256'),'hex'),'web passkey PIN reset',now()+interval '180 days',true);
+ RETURN json_build_object('session_token',v_token,'customer',json_build_object('id',v_c.id,'full_name',v_c.full_name,'phone',v_c.phone_display));
+END;$function$
+;
+REVOKE ALL ON FUNCTION public.customer_passkey_reset_pin_v14(text,bigint,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.customer_passkey_reset_pin_v14(text,bigint,text) TO service_role;
