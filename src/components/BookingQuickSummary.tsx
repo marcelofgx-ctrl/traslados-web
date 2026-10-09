@@ -6,7 +6,7 @@ import { googleMapsRoute,useRoadEstimate } from "@/lib/use-road-estimate";
 type Props={
   origin:Loc;destination:Loc;stops:Loc[];
   onEditOrigin:()=>void;onEditDestination:()=>void;onSwap:()=>void;
-  date?:string;time?:string;
+  date?:string|undefined;time?:string|undefined;
 };
 export function BookingQuickSummary({origin,destination,stops,onEditOrigin,onEditDestination,onSwap,date,time}:Props){
   const points=useMemo(()=>[origin,...stops,destination],[origin,stops,destination]);
