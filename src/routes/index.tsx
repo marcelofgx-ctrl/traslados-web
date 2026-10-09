@@ -17,6 +17,8 @@ import { PasskeyAccess } from "@/components/PasskeyAccess";
 import { CustomerTripHistory } from "@/components/CustomerTripHistory";
 import { PremiumHome } from "@/components/PremiumHome";
 import { RoutePreview } from "@/components/RoutePreview";
+import { BookingQuickSummary } from "@/components/BookingQuickSummary";
+import { PickupModePicker, type PickupMode } from "@/components/PickupModePicker";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, AVAILABILITY_REASON, checkAvailability, createReservation, getProfile,
@@ -119,6 +121,17 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   const [comments,setComments]=useState(""),[forOther,setForOther]=useState(Boolean(previous?.passenger_name)),[otherName,setOtherName]=useState(previous?.passenger_name??""),[otherPhone,setOtherPhone]=useState(previous?.passenger_phone??"");
   const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false);
   const [availableRevision,setAvailableRevision]=useState(0);
+  const [pickupMode,setPickupMode]=useState<PickupMode>("programado");
+  const [stopsOpen,setStopsOpen]=useState(Boolean(previous?.stops?.length));
+  function changeMode(next:PickupMode){setPickupMode(next);setConfirm(false);}
+  function editOrigin(){setOrigin(null);selectHour("");}
+  function editDestination(){setDestination(null);selectHour("");}
+  function reverseRoute(){
+    if(!origin||!destination)return;
+    setOrigin(destination);setDestination(origin);
+    setStops(items=>[...items].reverse().map(x=>({...x})));
+    selectHour("");
+  }
   const [scheduleMessage,setScheduleMessage]=useState("");
   const [alternatives,setAlternatives]=useState<string[]>([]);
   function selectDate(value:string){setDate(value);setTime("");setScheduleMessage("");setAlternatives([]);}
@@ -140,6 +153,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
     return true;
   }
   async function review(){
+    if(pickupMode!=="programado"){toast.error("La recogida inmediata se consulta por WhatsApp hasta activar el GPS en vivo.");return;}
     if(errors.length){toast.error(errors[0]??"Completá el formulario");return;}
     setBusy(true);
     try{
@@ -152,10 +166,11 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
   if(!origin)errors.push("Seleccioná el origen.");
   if(!destination)errors.push("Seleccioná el destino.");
   if(stops.some(x=>!x.value))errors.push("Completá o eliminá las paradas sin dirección.");
-  if(!date||!time||!isFutureMvd(date,time,10))errors.push("Elegí una fecha y hora futura en formato HH:mm.");
+  if(pickupMode==="programado"&&(!date||!time||!isFutureMvd(date,time,10)))errors.push("Elegí una fecha y hora futura en formato HH:mm.");
   if(forOther&&(otherName.trim().length<2||otherPhone.replace(/\D/g,"").length<8))errors.push("Completá el nombre y celular de quien viaja.");
   function shift(i:number,delta:number){const target=i+delta;if(target<0||target>=stops.length)return;const copy=[...stops];const temp=copy[i];copy[i]=copy[target]!;copy[target]=temp!;setStops(copy);}
   async function submit() {
+    if(pickupMode!=="programado"){toast.error("La recogida inmediata necesita confirmación directa.");return;}
     if(!origin||!destination||errors.length){toast.error(errors[0]??"Faltan datos.");return;}
     setBusy(true);
     try {
@@ -182,10 +197,10 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-primary">Tu próximo viaje</p>
     <h1 className="mt-2 font-display text-3xl text-[#f8efdf] sm:text-4xl">{confirm?"Revisá tu solicitud":"Programá tu traslado"}</h1><p className="mt-3 text-sm text-muted-foreground">Hola, {customer}. Elegí el recorrido a tu medida.</p>
     {confirm?<div className="mt-7 space-y-5">
-      <Panel title="Itinerario" icon={<RouteIcon className="size-5"/>}><div className="space-y-3">
-        <Detail label="Origen" value={origin?.text??"—"}/>
-        {stops.map((s,i)=><Detail key={s.id} label={"Parada "+(i+1)} value={s.value?.text??"—"}/>)}
-        <Detail label="Destino" value={destination?.text??"—"}/>
+      {origin&&destination&&<BookingQuickSummary origin={origin} destination={destination} stops={routeStops}
+        date={date} time={time} onEditOrigin={()=>{setConfirm(false);editOrigin();}}
+        onEditDestination={()=>{setConfirm(false);editDestination();}} onSwap={()=>{setConfirm(false);reverseRoute();}}/>}
+      <Panel title="Detalles del viaje" icon={<CalendarDays className="size-5"/>}><div className="space-y-3">
         <Detail label="Fecha y hora" value={formatDateTime24(date,time)}/>
         <Detail label="Pasajeros" value={String(passengers)}/>
         {forOther&&<Detail label="Viaja" value={otherName+" · "+otherPhone}/>}
@@ -198,33 +213,64 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
       </div>
       <div className="flex flex-col gap-3 sm:flex-row"><Button className="h-12 flex-1" variant="outline" onClick={()=>setConfirm(false)} disabled={busy}><ArrowLeft className="mr-2 size-4"/> Editar</Button><Button className="h-12 flex-[2]" disabled={busy} onClick={()=>void submit()}>{busy?"Enviando…":"Enviar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></div>
     </div>:<div className="mt-7 space-y-5">
-      <Panel title="Información del viaje" icon={<CalendarDays className="size-5"/>}><div className="space-y-3">
-        <p className="text-sm text-muted-foreground">Primero elegí tu recorrido. Más abajo podrás consultar los días y horarios que admite nuestra agenda.</p>
-        <div><Label>Pasajeros</Label><div className="mt-2 flex items-center gap-4"><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button><strong className="text-lg">{passengers}</strong><Button variant="outline" size="icon" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button><Users className="size-4 text-muted-foreground"/></div></div>
-      </div></Panel>
-      <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}><div className="space-y-6">
-        <UyLocationPicker id="from-location" label="01 · Origen" value={origin} onChange={v=>{setOrigin(v);selectHour("");}}/>
-        {origin&&<button type="button" disabled={!destination} onClick={()=>document.getElementById("booking-agenda")?.scrollIntoView({behavior:"smooth",block:"start"})}
-          className="premium-glass flex w-full items-center justify-between gap-3 rounded-xl border border-primary/25 px-4 py-3 text-left transition hover:border-primary/50 disabled:opacity-70">
-          <span className="flex items-center gap-3"><Clock3 className="size-5 shrink-0 text-primary"/><span>
-            <span className="block text-xs font-semibold text-[#ecd5a5]">Disponibilidad según tu recorrido</span>
-            <span className="mt-1 block text-xs leading-5 text-[#b8cbc2]">{destination?"Consultá los horarios para este origen y destino.":"Elegí el destino para ver los días y horas de la agenda."}</span>
-          </span></span><ArrowRight className="size-4 shrink-0 text-primary"/>
-        </button>}
-        {stops.map((s,i)=><div key={s.id} className="border-t border-border pt-5">
-          <div className="mb-2 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[.15em] text-primary">Parada intermedia {i+1}</p><div className="flex items-center gap-1">
-            <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===0} aria-label="Subir parada" onClick={()=>{shift(i,-1);selectHour("");}}><MoveUp className="size-4"/></button>
-            <button type="button" className="rounded-lg p-2 disabled:opacity-30" disabled={i===stops.length-1} aria-label="Bajar parada" onClick={()=>{shift(i,1);selectHour("");}}><MoveDown className="size-4"/></button>
-            <button type="button" className="rounded-lg p-2 text-warning" aria-label="Eliminar parada" onClick={()=>{setStops(v=>v.filter(x=>x.id!==s.id));selectHour("");}}><Minus className="size-4"/></button>
-          </div></div>
-          <UyLocationPicker id={"stop-"+s.id} label="Dirección de parada" value={s.value} onChange={loc=>{setStops(v=>v.map(x=>x.id===s.id?{...x,value:loc}:x));selectHour("");}}/>
-        </div>)}
-        <Button variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}><Plus className="mr-2 size-4"/> Agregar parada intermedia</Button>
-        <div className="border-t border-border pt-5"><UyLocationPicker id="to-location" label="Destino final" value={destination} onChange={v=>{setDestination(v);selectHour("");}}/></div>
-      </div></Panel>
+      <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}>
+        {origin&&destination?<BookingQuickSummary origin={origin} destination={destination} stops={routeStops}
+          date={pickupMode==="programado"?date:undefined} time={pickupMode==="programado"?time:undefined}
+          onEditOrigin={editOrigin} onEditDestination={editDestination} onSwap={reverseRoute}/>:<div className="space-y-4">
+          {origin?<button type="button" onClick={editOrigin} className="booking-selected-place flex w-full items-center gap-3 rounded-xl border border-primary/25 px-3 py-3 text-left">
+            <MapPin className="size-5 shrink-0 text-[#dcb877]"/><span className="min-w-0 flex-1"><span className="block text-[10px] font-bold tracking-[.15em] text-[#e3bb76]">ORIGEN SELECCIONADO</span><span className="mt-1 block text-sm font-semibold text-[#faf0db]">{origin.text}</span></span>
+            <span className="text-xs text-[#dfc68e]">Editar</span>
+          </button>:<UyLocationPicker id="from-location" label="01 · Origen" value={null} onChange={v=>{setOrigin(v);selectHour("");}}/>}
+          {!destination?<UyLocationPicker id="to-location" label="02 · Destino" value={null} onChange={v=>{setDestination(v);selectHour("");}}/>:
+          <button type="button" onClick={editDestination} className="booking-selected-place flex w-full items-center gap-3 rounded-xl border border-primary/25 px-3 py-3 text-left">
+            <MapPin className="size-5 shrink-0 text-[#dcb877]"/><span className="min-w-0 flex-1"><span className="block text-[10px] font-bold tracking-[.15em] text-[#e3bb76]">DESTINO SELECCIONADO</span><span className="mt-1 block text-sm font-semibold text-[#faf0db]">{destination.text}</span></span>
+            <span className="text-xs text-[#dfc68e]">Editar</span>
+          </button>}
+        </div>}
+        <div className="mt-4 border-t border-primary/10 pt-3">
+          <button type="button" onClick={()=>setStopsOpen(v=>!v)} aria-expanded={stopsOpen}
+            className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-2 text-left text-xs font-semibold text-[#eed6a7] hover:bg-primary/5">
+            <span><Plus className="mr-1 inline size-4"/> Paradas intermedias {stops.length?"("+stops.length+")":""}</span>
+            {stopsOpen?<ChevronUp className="size-4"/>:<ChevronDown className="size-4"/>}
+          </button>
+          {stopsOpen&&<div className="mt-2 space-y-3">
+            {stops.map((stop,i)=><div key={stop.id} className="border-t border-border/50 pt-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[.13em] text-[#d9b975]">Parada {i+1}</p>
+                <div className="flex items-center gap-1">
+                  <button type="button" disabled={i===0} onClick={()=>{shift(i,-1);selectHour("");}} aria-label="Subir parada" className="rounded-lg p-2 disabled:opacity-35"><MoveUp className="size-4"/></button>
+                  <button type="button" disabled={i===stops.length-1} onClick={()=>{shift(i,1);selectHour("");}} aria-label="Bajar parada" className="rounded-lg p-2 disabled:opacity-35"><MoveDown className="size-4"/></button>
+                  <button type="button" onClick={()=>{setStops(v=>v.filter(x=>x.id!==stop.id));selectHour("");}} aria-label="Eliminar parada" className="rounded-lg p-2 text-warning"><Minus className="size-4"/></button>
+                </div>
+              </div>
+              {stop.value?<button type="button" onClick={()=>{setStops(v=>v.map(x=>x.id===stop.id?{...x,value:null}:x));selectHour("");}}
+                  className="booking-selected-place flex w-full items-center justify-between gap-2 rounded-xl border border-border/70 p-3 text-left text-sm">
+                  <span>{stop.value.text}</span><span className="text-xs text-[#dfc68e]">Editar</span>
+                </button>:<UyLocationPicker id={"stop-"+stop.id} label="Ubicación de parada" value={null}
+                  onChange={loc=>{setStops(v=>v.map(x=>x.id===stop.id?{...x,value:loc}:x));selectHour("");}}/>}
+            </div>)}
+            <Button type="button" variant="outline" disabled={stops.length>=8} className="w-full border-dashed" onClick={()=>{setStops(v=>[...v,{id:nextId,value:null}]);setNextId(n=>n+1);selectHour("");}}>
+              <Plus className="mr-2 size-4"/> Agregar parada
+            </Button>
+          </div>}
+        </div>
+      </Panel>
+      <PickupModePicker mode={pickupMode} onModeChange={changeMode}
+        hasOrigin={Boolean(origin)} hasDestination={Boolean(destination)}
+        originText={origin?.text} destinationText={destination?.text}/>
+      <Panel title="Pasajeros" icon={<Users className="size-5"/>}>
+        <div className="flex items-center justify-between gap-4"><span className="text-sm text-[#c3d3cb]">Personas que viajan</span>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="outline" size="icon" aria-label="Quitar pasajero" onClick={()=>setPassengers(n=>Math.max(1,n-1))}><Minus className="size-4"/></Button>
+            <strong className="min-w-5 text-center text-lg tabular-nums">{passengers}</strong>
+            <Button type="button" variant="outline" size="icon" aria-label="Agregar pasajero" onClick={()=>setPassengers(n=>Math.min(20,n+1))}><Plus className="size-4"/></Button>
+          </div>
+        </div>
+      </Panel>
       <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
-      <BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
-        onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>
+      {pickupMode==="programado"&&<BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
+        onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>}
+
       {scheduleMessage&&<div role="alert" className="rounded-xl border border-amber-400/35 bg-amber-400/10 p-4">
         <p className="text-sm font-semibold text-[#e8c68a]">El horario solicitado no está disponible</p>
         <p className="mt-1 text-sm leading-6 text-[#d9c8a8]">{scheduleMessage}</p>
@@ -233,13 +279,20 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
             className="min-h-10 rounded-lg border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary hover:bg-primary/20">{alt} h</button>)}
         </div>}
       </div>}
-      <Panel title="Información adicional" icon={<UserRound className="size-5"/>}><div className="space-y-4">
+      <details className="premium-glass group rounded-2xl border border-primary/20 p-4 sm:p-5">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2 font-display text-base font-semibold text-[#f6e7d1]">
+            <UserRound className="size-5 text-[#ddbd7a]"/> Datos adicionales (opcionales)
+          </span>
+          <ChevronDown className="size-4 text-[#dbbb80] transition-transform group-open:rotate-180"/>
+        </summary>
+        <div className="space-y-4 border-t border-white/10 pt-4">
         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={forOther} onChange={e=>setForOther(e.target.checked)} className="size-4"/> Reservo para otra persona</label>
         {forOther&&<div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="other-name">Nombre del pasajero</Label><Input id="other-name" value={otherName} onChange={e=>setOtherName(e.target.value)} placeholder="Nombre y apellido"/></div><div className="space-y-2"><Label htmlFor="other-phone">Celular del pasajero</Label><Input id="other-phone" inputMode="tel" value={otherPhone} onChange={e=>setOtherPhone(e.target.value)} placeholder="099 123 456"/></div></div>}
         <div className="space-y-2"><Label htmlFor="booking-comments">Comentarios (opcional)</Label><Textarea id="booking-comments" rows={3} maxLength={1000} value={comments} onChange={e=>setComments(e.target.value)} placeholder="Vuelo, equipaje, necesidades especiales…"/></div>
-      </div></Panel>
-      {errors.length>0&&<p className="text-xs text-muted-foreground">{errors[0]}</p>}
-      <Button className="h-14 w-full text-base" disabled={errors.length>0||busy} onClick={()=>void review()}>{busy?"Comprobando agenda…":"Revisar solicitud"} <ArrowRight className="ml-2 size-4"/></Button>
+      </div></details>
+      {pickupMode==="programado"&&<><div aria-live="polite" className="text-xs text-[#c6d3c9]">{errors[0]??"Recorrido y horario listos para revisar."}</div>
+        <Button className="h-14 w-full text-base" disabled={errors.length>0||busy} onClick={()=>void review()}>{busy?"Comprobando agenda…":"Revisar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></>}
     </div>}
   </section>;
 }
