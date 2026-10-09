@@ -46,7 +46,7 @@ function errorText(e:unknown) {
 }
 function Detail({ label, value }: {label:string,value:string}) { return <div className="flex flex-col gap-1 border-b border-border/70 pb-2 text-sm last:border-0 sm:flex-row sm:gap-4"><span className="shrink-0 text-muted-foreground sm:w-28">{label}</span><span className="break-words font-medium">{value}</span></div>; }
 function Panel({ title, icon, children }: {title:string,icon:ReactNode,children:ReactNode}) {
-  return <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-[0_16px_38px_rgba(0,0,0,.09)] sm:p-6">
+  return <div className="premium-glass rounded-2xl border border-primary/20 p-4 shadow-[0_16px_38px_rgba(0,0,0,.10)] sm:p-6">
     <div className="mb-5 flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><h2 className="font-display text-lg font-semibold">{title}</h2></div>{children}
   </div>;
 }
@@ -86,7 +86,7 @@ function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>
     catch(e){setMessage(errorText(e));}finally{setBusy(false);}
   }
   return <section className="mx-auto max-w-lg px-5 py-14">
-    <div className="panel p-6 sm:p-8">
+    <div className="premium-glass rounded-[1.5rem] border border-primary/30 p-6 shadow-[0_24px_58px_rgba(0,0,0,.19)] sm:p-8">
       <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10"><UserRound className="size-7 text-primary"/></div>
       <p className="mt-5 text-center text-xs uppercase tracking-[.2em] text-primary">Espacio personal</p>
       <h1 className="mt-2 text-center font-display text-3xl text-[#f6ecdd]">Bienvenido de nuevo</h1>
