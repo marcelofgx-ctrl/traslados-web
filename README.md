@@ -58,3 +58,11 @@ El nuevo `public/icon.svg` es funcional y está referenciado en el manifest; fal
 Detalles y trabajo pendiente en [PLAN_MIGRACION_WEB_SIN_LOVABLE.md](PLAN_MIGRACION_WEB_SIN_LOVABLE.md).
 
 La rama `main` de este repositorio pertenece exclusivamente a la web. Se puede seguir programando aquí sin afectar el repositorio Android.
+
+## Historial premium del cliente (v15, octubre 2026)
+
+La portada móvil mantiene la identidad petróleo/dorado con cabecera y hero más compactos. La pantalla «Mis traslados» ahora separa próximos e historial, con búsqueda por reserva/código/origen/destino/pasajero/paradas; filtros combinables por año, mes, estado y períodos 7/30/90 días o rango personalizado; agrupación plegable **año → mes → semana → detalle de viaje**; desplegar/plegar todo; resumen de recuentos y exportación CSV de las filas filtradas (UTF‑8 para Excel, evitando inyección de fórmulas). Cada detalle muestra paradas, presupuesto y observaciones cuando existen. Permite repetir el itinerario, responder presupuestos pendientes y cancelar solamente estados autorizados, con confirmación y actualización desde Supabase.
+
+La sección comercial incorpora compartir por el sistema del teléfono, copiar el enlace, descargar contacto .vcf y ayuda para crear acceso directo Android. El selector horario requiere seleccionar hora antes de minutos para evitar una reserva a medianoche involuntaria.
+
+**Verificación:** pruebas en GitHub Actions con ambos Bun, TypeScript estricto, render HTTP 200 de la portada y tests unitarios de filtros/seguridad. **Pendiente:** verificar la última publicación de Cloudflare, comprobar en un celular real con cuenta de prueba las operaciones de presupuestos/cancelación y la passkey; el build verde no demuestra que ya esté desplegado ni valida integración punta a punta. No anunciar disponibilidad comercial hasta esas pruebas.
