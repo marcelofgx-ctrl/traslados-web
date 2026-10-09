@@ -279,11 +279,18 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
             className="min-h-10 rounded-lg border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary hover:bg-primary/20">{alt} h</button>)}
         </div>}
       </div>}
-      <Panel title="Información adicional" icon={<UserRound className="size-5"/>}><div className="space-y-4">
+      <details className="premium-glass group rounded-2xl border border-primary/20 p-4 sm:p-5">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2 font-display text-base font-semibold text-[#f6e7d1]">
+            <UserRound className="size-5 text-[#ddbd7a]"/> Datos adicionales (opcionales)
+          </span>
+          <ChevronDown className="size-4 text-[#dbbb80] transition-transform group-open:rotate-180"/>
+        </summary>
+        <div className="space-y-4 border-t border-white/10 pt-4">
         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={forOther} onChange={e=>setForOther(e.target.checked)} className="size-4"/> Reservo para otra persona</label>
         {forOther&&<div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="other-name">Nombre del pasajero</Label><Input id="other-name" value={otherName} onChange={e=>setOtherName(e.target.value)} placeholder="Nombre y apellido"/></div><div className="space-y-2"><Label htmlFor="other-phone">Celular del pasajero</Label><Input id="other-phone" inputMode="tel" value={otherPhone} onChange={e=>setOtherPhone(e.target.value)} placeholder="099 123 456"/></div></div>}
         <div className="space-y-2"><Label htmlFor="booking-comments">Comentarios (opcional)</Label><Textarea id="booking-comments" rows={3} maxLength={1000} value={comments} onChange={e=>setComments(e.target.value)} placeholder="Vuelo, equipaje, necesidades especiales…"/></div>
-      </div></Panel>
+      </div></details>
       {pickupMode==="programado"&&<><div aria-live="polite" className="text-xs text-[#c6d3c9]">{errors[0]??"Recorrido y horario listos para revisar."}</div>
         <Button className="h-14 w-full text-base" disabled={errors.length>0||busy} onClick={()=>void review()}>{busy?"Comprobando agenda…":"Revisar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></>}
     </div>}
