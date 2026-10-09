@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Check, Crosshair, Loader2, MapPin, MapPinned, Search, X } from "lucide-react";
+import { Check, Crosshair, Flag, Loader2, MapPin, MapPinned, Navigation2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ALL_URUGUAY, DEPARTMENTS, departmentLabel, inUruguay,
@@ -9,8 +9,8 @@ import type { Loc } from "@/lib/operativa/api";
 
 const MapPicker = lazy(() => import("@/components/MapPicker"));
 
-type Props = { label: string; value: Loc | null; onChange: (value: Loc | null) => void; id: string };
-export function UyLocationPicker({ label, value, onChange, id }: Props) {
+type Props = { label: string; value: Loc | null; onChange: (value: Loc | null) => void; id: string; variant?: "origin" | "stop" | "destination" };
+export function UyLocationPicker({ label, value, onChange, id, variant = "stop" }: Props) {
   const [department, setDepartment] = useState("CANELONES");
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<UySuggestion[]>([]);
@@ -107,7 +107,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
         key={idValue}
         onClick={() => { setDepartment(idValue); onChange(null); setMessage(""); }}
         aria-pressed={department === idValue}
-        className={"min-h-10 rounded-lg border px-3 text-sm font-medium transition " + (department === idValue
+        className={"min-h-9 rounded-lg border px-2.5 text-[13px] font-medium transition " + (department === idValue
           ? "border-primary bg-primary/15 text-primary shadow-sm" : "border-border bg-background/40 text-muted-foreground hover:border-primary/60")}
       >
         {departmentLabel(idValue)}
@@ -116,16 +116,25 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
   }
   const other = DEPARTMENTS.filter(d => !["MONTEVIDEO", "CANELONES"].includes(d.id));
 
+  const terminal = variant !== "stop";
   return (
-    <section className="space-y-3">
+    <section className={"space-y-2.5 " + (terminal
+      ? "rounded-xl border px-3 py-3 shadow-[inset_0_1px_rgba(255,255,255,.025)] " +
+        (variant === "origin" ? "border-[#548c8b]/45 bg-[#14373a]/90" : "border-primary/50 bg-[#2a342e]/75")
+      : "")}>
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="text-sm font-semibold tracking-wide text-foreground">{label}</label>
-        {value && <span className="inline-flex items-center gap-1 text-xs text-success"><Check className="size-3" /> Ubicado</span>}
+        <label htmlFor={id} className="flex items-center gap-2.5 text-sm font-semibold tracking-wide text-foreground">
+          <span className={"flex size-7 shrink-0 items-center justify-center rounded-lg " + (variant === "destination" ? "bg-primary/20 text-primary" : "bg-[#4f9b99]/15 text-[#9ed3ce]")}>
+            {variant === "destination" ? <Flag className="size-4" /> : variant === "origin" ? <Navigation2 className="size-4" /> : <MapPin className="size-4" />}
+          </span>
+          {label}
+        </label>
+        {value && <span className="inline-flex items-center gap-1 text-[11px] text-success"><Check className="size-3" /> Ubicado</span>}
       </div>
       <div className="grid grid-cols-2 gap-2">{departmentButton("MONTEVIDEO")}{departmentButton("CANELONES")}</div>
       <select
         aria-label={"Otros departamentos para " + label}
-        className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+        className="h-9 w-full rounded-lg border border-input bg-background px-3 text-[13px] text-foreground"
         value={["MONTEVIDEO", "CANELONES"].includes(department) ? "" : department}
         onChange={(e) => { setDepartment(e.target.value); onChange(null); setMessage(""); }}
       >
@@ -150,8 +159,8 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
             id={id}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="h-12 w-full rounded-xl border border-input bg-background pl-10 pr-10 text-base text-foreground outline-none transition focus:border-primary"
-            placeholder="Calle y número, local o referencia…"
+            className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-10 text-sm text-foreground outline-none transition focus:border-primary"
+            placeholder="Calle, número o lugar…"
             autoComplete="off"
           />
           {(busy || resolving) && <Loader2 className="absolute right-3 top-3.5 size-5 animate-spin text-primary" />}
@@ -174,7 +183,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
         </div>
       )}
       {message && <p className="text-xs text-warning" role="status">{message}</p>}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Button size="sm" type="button" variant="outline" onClick={() => setMapOpen(v => !v)}><MapPinned className="mr-2 size-4" /> {mapOpen ? "Cerrar mapa" : "Elegir en mapa"}</Button>
         <Button size="sm" type="button" variant="ghost" onClick={() => void currentPosition()} disabled={resolving}><Crosshair className="mr-2 size-4" /> Mi ubicación</Button>
       </div>
