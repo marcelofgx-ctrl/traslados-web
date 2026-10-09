@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
-  ArrowLeft, ArrowRight, CalendarDays, CarFront, CheckCircle2, ChevronDown, ChevronUp,
+  ArrowLeft, ArrowRight, CalendarDays, CarFront, CheckCircle2, ChevronDown, ChevronUp, Fingerprint,
   Clock3, History, LogOut, MapPin, Minus, MoveDown, MoveUp,
   Navigation2, Phone, Plane, Plus, RefreshCw, Route as RouteIcon,
   ShieldCheck, Sparkles, Star, UserRound, Users,
@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UyLocationPicker } from "@/components/UyLocationPicker";
 import { TimeSelect24 } from "@/components/TimeSelect24";
-import { EmailAccess } from "@/components/EmailAccess";
+import { PasskeyAccess } from "@/components/PasskeyAccess";
+import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, createReservation, getProfile,
   listReservations, login, logout, type Loc, type OpReservation,
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/")({
   component: TrasladosWeb,
 });
 
-type View = "inicio" | "acceso" | "registro" | "recuperar" | "reserva" | "historial" | "enviada";
+type View = "inicio" | "acceso" | "registro" | "recuperar" | "vincular" | "reserva" | "historial" | "enviada";
 type Stop = { id: number; value: Loc | null };
 const CONTACT = "+59897228175";
 const WHATSAPP = "https://wa.me/59897228175";
@@ -101,6 +102,14 @@ function Home({go}:{go:(v:View)=>void}) {
 }
 function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>void,onRecover:()=>void}) {
   const [phone,setPhone]=useState(""),[pin,setPin]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
+  const [hasPasskeys,setHasPasskeys]=useState(false);
+  useEffect(()=>{let alive=true; void passkeysAvailable().then(v=>{if(alive)setHasPasskeys(v);});return()=>{alive=false;};},[]);
+  async function biometric(){
+    setBusy(true);setMessage("");
+    try{await loginWithPasskey();success();}
+    catch(e){setMessage(errorText(e));}
+    finally{setBusy(false);}
+  }
   async function submit(e:FormEvent) {
     e.preventDefault();
     if(phone.replace(/\D/g,"").length<8 || !/^\d{6}$/.test(pin)){setMessage("Ingresá tu teléfono y PIN de 6 dígitos.");return;}
@@ -114,16 +123,22 @@ function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>
       <p className="mt-5 text-center text-xs uppercase tracking-[.2em] text-primary">Espacio personal</p>
       <h1 className="mt-2 text-center font-display text-3xl text-[#f6ecdd]">Bienvenido de nuevo</h1>
       <p className="mt-4 text-center text-sm leading-6 text-muted-foreground">Accedé con tu teléfono y PIN para revisar tus traslados o solicitar uno nuevo.</p>
-      <form className="mt-7 space-y-4" onSubmit={e=>void submit(e)}>
+      <div className="mt-7">
+        <Button type="button" variant="outline" className="h-14 w-full border-primary/45 bg-primary/10 text-base text-primary hover:bg-primary/20" disabled={busy||!hasPasskeys} onClick={()=>void biometric()}>
+          <Fingerprint className="mr-2 size-5"/> {hasPasskeys?"Ingresar con huella":"Huella en preparación"}
+        </Button>
+        <p className="mt-2 text-center text-xs text-muted-foreground">O ingresá con tu celular y PIN</p>
+      </div>
+      <form className="mt-5 space-y-4" onSubmit={e=>void submit(e)}>
         <div className="space-y-2"><Label htmlFor="login-phone">Tu celular</Label><Input id="login-phone" autoComplete="tel" inputMode="tel" placeholder="099 123 456" value={phone} onChange={e=>setPhone(e.target.value)} required className="h-12"/></div>
         <div className="space-y-2"><Label htmlFor="login-pin">PIN (6 dígitos)</Label><Input id="login-pin" autoComplete="current-password" type="password" inputMode="numeric" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))} placeholder="••••••" required className="h-12"/></div>
         {message&&<p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning" role="alert">{message}</p>}
         <Button className="h-12 w-full" type="submit" disabled={busy}>{busy?"Ingresando…":"Ingresar"} <ArrowRight className="ml-2 size-4"/></Button>
       </form>
       <div className="mt-6 space-y-3 border-t border-border pt-5 text-center">
-        <button type="button" className="w-full rounded-xl border border-primary/35 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15" onClick={onRegister}>Soy nuevo · Crear cuenta <ArrowRight className="ml-1 inline size-4"/></button>
-        <button type="button" className="w-full text-sm font-medium text-muted-foreground hover:text-primary" onClick={onRecover}>¿Olvidaste tu PIN? Recuperarlo por correo</button>
-        <p className="text-xs leading-5 text-muted-foreground">El correo permite confirmar la identidad y recuperar el acceso. No utilizamos SMS.</p>
+        <button type="button" className="w-full rounded-xl border border-primary/35 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15" onClick={onRegister}>Soy nuevo · Crear cuenta con huella <ArrowRight className="ml-1 inline size-4"/></button>
+        <button type="button" className="w-full text-sm font-medium text-muted-foreground hover:text-primary" onClick={onRecover}>¿Olvidaste tu PIN? Recuperarlo con código de respaldo</button>
+        <p className="text-xs leading-5 text-muted-foreground">La huella queda protegida por Android. También podés ingresar con tu PIN habitual.</p>
       </div>
     </div>
   </section>;
@@ -253,8 +268,10 @@ function TrasladosWeb() {
   return <main className="min-h-screen overflow-x-hidden">
     <Header go={go} name={signed?session?.customer.full_name:undefined}/>
     {view==="inicio"&&<Home go={go}/>}
-    {(view==="registro" || view==="recuperar") && <EmailAccess key={view} action={view} onDone={()=>setView(wanted)} onBack={()=>setView("acceso")}/>}
-    {view==="acceso"&&(signed?<section className="mx-auto max-w-lg px-5 py-16 text-center"><CheckCircle2 className="mx-auto size-12 text-success"/><h1 className="mt-4 font-display text-2xl">Sesión iniciada</h1><p className="mt-3 text-sm text-muted-foreground">{session?.customer.full_name}</p><div className="mt-6 flex justify-center gap-2"><Button onClick={()=>go("historial")}>Mis viajes</Button><Button variant="outline" onClick={()=>go("reserva")}>Reservar</Button></div><Button variant="ghost" className="mt-6" onClick={()=>{if(session)void logout(session.token);setValid(null);setView("inicio");}}><LogOut className="mr-2 size-4"/> Cerrar sesión</Button></section>:<Access success={onAccess} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
+    {view==="registro" && <PasskeyAccess mode="registro" onDone={()=>setView(wanted)} onBack={()=>setView("acceso")}/>}
+    {view==="recuperar" && <PasskeyAccess mode="recuperacion" onDone={()=>setView(wanted)} onBack={()=>setView("acceso")}/>}
+    {view==="vincular" && (signed ? <PasskeyAccess mode="vincular" sessionToken={session!.token} onDone={()=>setView("historial")} onBack={()=>setView("acceso")}/> : <Access success={onAccess} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/> )}
+    {view==="acceso"&&(signed?<section className="mx-auto max-w-lg px-5 py-16 text-center"><CheckCircle2 className="mx-auto size-12 text-success"/><h1 className="mt-4 font-display text-2xl">Sesión iniciada</h1><p className="mt-3 text-sm text-muted-foreground">{session?.customer.full_name}</p><div className="mt-6 flex justify-center gap-2"><Button onClick={()=>go("historial")}>Mis viajes</Button><Button variant="outline" onClick={()=>go("reserva")}>Reservar</Button></div><Button variant="outline" className="mt-6" onClick={()=>setView("vincular")}><Fingerprint className="mr-2 size-4"/> Activar huella</Button><Button variant="ghost" className="mt-6" onClick={()=>{if(session)void logout(session.token);setValid(null);setView("inicio");}}><LogOut className="mr-2 size-4"/> Cerrar sesión</Button></section>:<Access success={onAccess} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
     {view==="reserva"&&(signed?<Booking key={previous?.id??"new"} previous={previous} token={session!.token} customer={session!.customer.full_name} onSent={code=>{setSent(code);setPrevious(null);setView("enviada");}}/>:<Access success={()=>setView("reserva")} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
     {view==="historial"&&(signed?<HistoryView token={session!.token} go={go} onRepeat={r=>{setPrevious(r);setView("reserva");if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}}/>:<Access success={()=>setView("historial")} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
     {view==="enviada"&&<section className="mx-auto max-w-lg px-5 py-20 text-center"><CheckCircle2 className="mx-auto size-16 text-success"/><h1 className="mt-5 font-display text-3xl">Solicitud recibida</h1><p className="mt-3 text-sm text-muted-foreground">Queda pendiente de confirmación del conductor.</p><div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-5"><p className="text-xs uppercase tracking-[.2em] text-primary">Código de reserva</p><p className="mt-2 font-display text-3xl font-semibold">{sent}</p></div><Button className="mt-7 h-12 w-full" onClick={()=>go("historial")}>Ver mis traslados</Button></section>}
