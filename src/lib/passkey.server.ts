@@ -160,7 +160,7 @@ export async function passkeyHandler(request:Request, body:Body) {
     failDb(error);
     return {challengeId:data!.id,options};
   }
-  if(step==="authenticate-verify") {
+  if(step==="authenticate-verify" || step==="reset-pin-verify") {
     const pending=await consume(db,body["challengeId"],"authenticate",rpID);
     const response=body["credential"] as AuthenticationResponseJSON|undefined;
     if(!response ||typeof response.id!=="string")throw new ApiError("Faltan datos de autenticación");
@@ -178,9 +178,13 @@ export async function passkeyHandler(request:Request, body:Body) {
       },
     });
     if(!verification.verified)throw new ApiError("No se pudo verificar tu identidad");
-    const {data,error:sessionErr}=await db.rpc("customer_passkey_login_v14",{
+    const changingPin=step==="reset-pin-verify";
+    const newPin=changingPin?validString(body["pin"],6,6):null;
+    if(changingPin && !/^\d{6}$/.test(newPin!)) throw new ApiError("El nuevo PIN debe tener 6 dígitos");
+    const {data,error:sessionErr}=await db.rpc(changingPin?"customer_passkey_reset_pin_v14":"customer_passkey_login_v14",{
       p_credential_id:passkey.credential_id,
       p_new_counter:verification.authenticationInfo.newCounter,
+      ...(changingPin?{p_pin:newPin}:{}),
     });
     failDb(sessionErr,"No se pudo iniciar sesión con la llave de acceso");
     return {ok:true,session:data};
