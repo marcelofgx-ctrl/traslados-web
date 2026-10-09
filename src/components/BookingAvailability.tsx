@@ -82,8 +82,8 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
           <CalendarCheck2 className="size-5 text-primary"/>
         </span>
-        <span><strong className="block font-display text-lg text-[#f7eddd]">Horarios para tu traslado</strong>
-          <span className="mt-0.5 block text-xs text-[#bfcecb]">{selected?("Seleccionaste "+time+" h"):"Consultá tu día y elegí una hora"}</span>
+        <span><strong className="block font-display text-lg text-[#f7eddd]">Disponibilidad para tu traslado</strong>
+          <span className="mt-0.5 block text-xs text-[#bfcecb]">{selected?("Seleccionaste "+time+" h"):"Elegí el día y consultá las horas sugeridas"}</span>
         </span>
       </span>
       {expanded?<ChevronLeft className="-rotate-90 size-5 shrink-0 text-primary"/>:<ChevronRight className="size-5 shrink-0 text-primary"/>}
@@ -125,12 +125,17 @@ export function BookingAvailability({token,date,time,origin,destination,onDateCh
       </div>:data?<div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="flex items-center gap-2 text-sm font-semibold text-[#ecdfc8]">
-            <Clock3 className="size-4 text-primary"/> Horas consultadas
+            <Clock3 className="size-4 text-primary"/> Agenda para esta fecha
           </span>
-          <span className="text-xs text-muted-foreground">{daysWithHours.length} opción{daysWithHours.length===1?"":"es"} disponibles</span>
+          <span className="text-xs text-muted-foreground">{daysWithHours.length} opción{daysWithHours.length===1?"":"es"} sugeridas</span>
         </div>
+        <p className="text-xs leading-5 text-[#b9c9c4]">
+          Calculadas con una duración de referencia de {data.duration_used_min} minutos.
+          La duración definitiva depende del recorrido y del presupuesto aprobado.
+          {data.reposition_method==="ESTIMATED"?" Los desplazamientos entre reservas incluyen estimaciones.":""}
+        </p>
         {!data.enabled?<p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-[#e1d0af]">No hay horarios configurados para este día. Probá con otra fecha.</p>
-        :daysWithHours.length===0?<p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-[#e1d0af]">No encontramos horarios disponibles ese día para este recorrido. Deslizá los días o elegí la semana siguiente.</p>
+        :daysWithHours.length===0?<p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-[#e1d0af]">No encontramos turnos sugeridos para ese día y recorrido. Deslizá los días o elegí la semana siguiente.</p>
         :<div className="max-h-64 space-y-3 overflow-y-auto pr-1 [scrollbar-width:thin]" aria-label="Horas disponibles">
           {groups.map(g=><div key={g.key}>
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[.15em] text-[#b5c7c3]">{g.key}</div>
