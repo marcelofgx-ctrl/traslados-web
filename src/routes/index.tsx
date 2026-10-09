@@ -232,6 +232,10 @@ function HistoryView({ token, go, onRepeat }:{token:string,go:(v:View)=>void,onR
   return <section className="mx-auto max-w-3xl px-4 pb-16 pt-11 sm:px-6">
     <div className="flex items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-[.2em] text-primary">Tu espacio</p><h1 className="mt-2 font-display text-3xl text-[#f7efdf]">Mis traslados</h1></div><Button size="sm" variant="outline" onClick={()=>setRevision(n=>n+1)}><RefreshCw className="mr-2 size-4"/> Actualizar</Button></div>
     <p className="mt-3 text-sm text-muted-foreground">Consultá el estado real de tus reservas, agrupadas por mes y por semana.</p>
+    <button type="button" onClick={()=>go("vincular")} className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-left hover:border-primary/60">
+      <span className="flex items-center gap-3"><Fingerprint className="size-6 text-primary"/><span><strong className="block text-sm">Activar acceso con huella</strong><span className="block text-xs text-muted-foreground">Ingresá más rápido desde este dispositivo</span></span></span>
+      <ArrowRight className="size-4 text-primary"/>
+    </button>
     <div className="mt-7 grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary/40 p-1">
       <button type="button" onClick={()=>setTab("proximos")} className={"min-h-11 rounded-lg text-sm font-semibold "+(tab==="proximos"?"bg-primary text-primary-foreground":"text-muted-foreground")}>Próximos</button>
       <button type="button" onClick={()=>setTab("historico")} className={"min-h-11 rounded-lg text-sm font-semibold "+(tab==="historico"?"bg-primary text-primary-foreground":"text-muted-foreground")}>Historial</button>
