@@ -54,15 +54,21 @@ jobs:
           PY
       - name: Publicar solo el índice en el repositorio
         run: |
-          if git diff --quiet -- public/data/uy-pois.json && git ls-files --error-unmatch public/data/uy-pois.json >/dev/null 2>&1; then
-            echo "No hay cambios."
+          # La descarga/lectura demora y puede haber nuevos commits mientras tanto.
+          # Rebasar un JSON de 2MB provoca conflictos; por eso primero alineamos
+          # el checkout a origin, después copiamos únicamente el índice generado.
+          cp public/data/uy-pois.json /tmp/uy-pois.generated.json
+          branch="$(git branch --show-current)"
+          git fetch origin "$branch"
+          git reset --hard "origin/$branch"
+          mkdir -p public/data
+          cp /tmp/uy-pois.generated.json public/data/uy-pois.json
+          git add public/data/uy-pois.json
+          if git diff --cached --quiet; then
+            echo "No hay cambios en el índice de lugares."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/uy-pois.json
-          git commit -m "datos: índice actualizado de lugares OSM Uruguay [skip ci]"
-          # El repositorio puede cambiar durante los ~2 minutos de generación.
-          # Integrar esas actualizaciones antes de publicar el nuevo índice.
-          git pull --rebase origin "$(git branch --show-current)"
-          git push origin "HEAD:$(git branch --show-current)"
+          git commit -m "datos: índice actualizado de lugares OSM Uruguay"
+          git push origin "HEAD:$branch"
