@@ -256,7 +256,8 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         </div>
       </Panel>
       <PickupModePicker mode={pickupMode} onModeChange={changeMode}
-        hasOrigin={Boolean(origin)} hasDestination={Boolean(destination)}/>
+        hasOrigin={Boolean(origin)} hasDestination={Boolean(destination)}
+        originText={origin?.text} destinationText={destination?.text}/>
       <Panel title="Pasajeros" icon={<Users className="size-5"/>}>
         <div className="flex items-center justify-between gap-4"><span className="text-sm text-[#c3d3cb]">Personas que viajan</span>
           <div className="flex items-center gap-3">
