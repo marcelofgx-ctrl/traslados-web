@@ -22,6 +22,7 @@ export function TripProgress({trip}:{trip:OpReservation}){
   const started=["EN_VIAJE","FINALIZADA"].includes(trip.status);
   const done=trip.status==="FINALIZADA";
   const flags=[true,budget,confirmed,started,done];
+  const lastStage=flags.reduce((acc,val,i)=>val?i:acc,0);
   const dates=[trip.created_at,trip.quote_sent_at,trip.confirmed_at,null,null];
   return <section className="mt-3 rounded-xl border border-primary/20 bg-[#18363a]/60 p-4" aria-label="Estado de la reserva">
     <div className="flex items-center justify-between gap-2">
@@ -33,7 +34,7 @@ export function TripProgress({trip}:{trip:OpReservation}){
       <p className="text-xs leading-5 text-rose-100">Esta reserva figura como {trip.status==="CANCELADA"?"cancelada":"rechazada"}. Si necesitás otro horario, podés repetir el recorrido.</p>
     </div>:<ol className="mt-4 space-y-3">
       {stages.map((stage,i)=>{
-        const active=flags[i],current=active&&(i===4||!flags[i+1]);
+        const active=flags[i],current=active&&i===lastStage;
         const Icon=stage.icon;
         return <li key={stage.name} className="flex items-start gap-3">
           <span className={"mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border "+
