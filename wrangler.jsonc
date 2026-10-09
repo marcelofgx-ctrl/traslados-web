@@ -8,5 +8,10 @@
   "main": "@tanstack/react-start/server-entry",
   "observability": {
     "enabled": true
+  },
+  "keep_vars": true,
+  "vars": {
+    "PASSKEY_PUBLIC_ORIGIN": "https://traslados-web.marcelof-gx.workers.dev",
+    "PASSKEY_AUTH_ENABLED": "true"
   }
 }
