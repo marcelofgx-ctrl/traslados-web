@@ -7,6 +7,7 @@ import {
 } from "@/lib/uy-geo";
 import type { Loc } from "@/lib/operativa/api";
 import { localUyPlaces, URUGUAY_PLACES } from "@/lib/uy-places";
+import { combineUySuggestions } from "@/lib/uy-poi";
 
 const MapPicker = lazy(() => import("@/components/MapPicker"));
 
@@ -43,23 +44,47 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
     setBusy(false);
     setMessage("");
     if (query.trim().length < 3) return () => controller.abort();
-    const timeout = window.setTimeout(async () => {
-      setBusy(immediate.length === 0);
-      try {
-        const result = await searchUy(query, department, controller.signal);
-        if (rid === requestId.current && !controller.signal.aborted) {
-          setSuggestions(result.items);
-          setWidened(result.widened);
-          if (!result.items.length) setMessage("No encontramos la dirección. Probá otra referencia o elegí el punto en el mapa.");
-        }
-      } catch {
-        if (!controller.signal.aborted && rid === requestId.current) {
-          setMessage(immediate.length ? "" : "La búsqueda demora o no responde. Podés elegir un lugar conocido o señalarlo en el mapa.");
-        }
-      } finally {
-        if (!controller.signal.aborted && rid === requestId.current) setBusy(false);
-      }
-    }, 180);
+    const timeout = window.setTimeout(() => {
+      // Dos fuentes en paralelo: actualizar a medida que llega cada una,
+      // sin esperar a que termine la más lenta ni borrar destinos locales.
+      let postal: UySuggestion[]=[];
+      let named: UySuggestion[]=[];
+      let finished=0;
+      let widened=false;
+      const update=()=>{
+        if(controller.signal.aborted||rid!==requestId.current)return;
+        const merged=combineUySuggestions(immediate,named,postal,query);
+        setSuggestions(merged);
+        setWidened(widened);
+        setBusy(finished<2 && merged.length===0);
+        if(finished===2 && !merged.length){
+          setMessage("No encontramos ese lugar. Probá con el nombre completo, su calle o señalalo en el mapa.");
+        }else if(merged.length)setMessage("");
+      };
+      const byAddress=async()=>{
+        try{
+          const result=await searchUy(query,department,controller.signal);
+          postal=result.items;widened=result.widened;
+        }catch{/* La otra fuente o el mapa siguen disponibles. */}
+        finally{finished++;update();}
+      };
+      const byPlaces=async()=>{
+        try{
+          const params=new URLSearchParams({q:query,dept:department});
+          const res=await fetch("/api/public/places-search?"+params.toString(),{
+            signal:controller.signal,headers:{Accept:"application/json"},
+          });
+          if(res.ok){
+            const data=await res.json() as {items?:UySuggestion[]};
+            named=Array.isArray(data.items)?data.items:[];
+          }
+        }catch{/* Sin cuota/configuración, se conserva el buscador oficial. */}
+        finally{finished++;update();}
+      };
+      setBusy(immediate.length===0);
+      void byAddress();
+      void byPlaces();
+    }, 260);
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [query, department, value]);
 
@@ -146,7 +171,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
           <MapPin className="mt-0.5 size-5 shrink-0 text-success" />
           <div className="min-w-0 flex-1">
             <p className="break-words text-sm font-medium text-foreground">{value.text}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{departmentLabel(value.department) || "Uruguay"} · Punto confirmado en el mapa</p>
+            <p className="mt-1 text-xs text-muted-foreground">{departmentLabel(value.department) || "Uruguay"} · Punto de referencia; podés ajustar el acceso en el mapa</p>
           </div>
           <button type="button" aria-label={"Modificar " + label} onClick={() => { onChange(null); setQuery(value.text); }} className="rounded-lg p-1.5 text-muted-foreground hover:text-primary"><X className="size-4" /></button>
         </div>
@@ -158,7 +183,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="h-12 w-full rounded-xl border border-input bg-background pl-10 pr-10 text-base text-foreground outline-none transition focus:border-primary"
-            placeholder="Calle y número, local o referencia…"
+            placeholder="Shopping, hospital, hotel, calle o número…"
             autoComplete="off"
           />
           {(busy || resolving) && <Loader2 className="absolute right-3 top-3.5 size-5 animate-spin text-primary" />}
@@ -182,11 +207,15 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
       )}
       {!value && query.trim().length<2 && <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-muted-foreground">Accesos rápidos:</span>
-        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[0]!)}
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[1]!)}
           className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
           Aeropuerto de Carrasco
         </button>
-        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[1]!)}
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[0]!)}
+          className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+          Plaza Italia Shopping
+        </button>
+        <button type="button" onClick={()=>void selectSuggestion(URUGUAY_PLACES[2]!)}
           className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs text-[#d8c49d] hover:bg-primary/10">
           Laguna del Sauce
         </button>

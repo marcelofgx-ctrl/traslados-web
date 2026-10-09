@@ -35,7 +35,7 @@ jobs:
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
       - name: Pruebas seguridad origen WebAuthn
-        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/uy-pois.test.ts
       - name: Compilar web sin Lovable
         run: bun run build
       - name: Comprobar TypeScript estrictamente
@@ -60,6 +60,9 @@ jobs:
           fi
           grep -q 'Cada viaje' /tmp/traslados-index.html || { echo "Falta contenido home"; head -c 500 /tmp/traslados-index.html; exit 1; }
           echo "SSR HTTP 200: la portada responde correctamente."
+          shops="$(curl -fsS 'http://127.0.0.1:8787/api/public/places-search?q=Plaza%20Italia%20Shopping')"
+          echo "$shops" | grep -q '"enabled":false' || { echo "Sin clave, búsqueda de POIs debe conservar fallback IDE/local"; exit 1; }
+          echo "Búsqueda POI con proveedor opcional verificada."
           routepage="$(curl -s -o /tmp/traslados-distancia.html -w '%{http_code}' http://127.0.0.1:8787/distancia)"
           [ "$routepage" = "200" ] || { echo "Consulta pública de distancia no disponible: $routepage"; exit 1; }
           grep -q 'Cuántos kilómetros' /tmp/traslados-distancia.html || { echo "No se renderizó el calculador"; exit 1; }

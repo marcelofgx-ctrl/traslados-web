@@ -1,4 +1,4 @@
-import { localUyPlaces } from "./uy-places";
+import { localUyPlaces, URUGUAY_PLACES } from "./uy-places";
 // Búsqueda de direcciones de Uruguay con la API pública oficial IDE Uruguay
 // (https://direcciones.ide.uy). Permite CORS, por eso se llama directo desde el navegador.
 
@@ -145,7 +145,9 @@ export async function searchUy(query: string, dept: string, signal?: AbortSignal
   if (q.length < 3) return { items: local, widened: false };
   // Los lugares muy conocidos tienen respuesta inmediata incluso con IDE lento.
   const wellKnown = /^(aeropuerto|aeropuerto de carrasco|aeropuerto carrasco|mvd|pdp|carrasco internacional|terminal aeropuerto|aeropuerto canelones)$/i.test(norm(q));
-  if(wellKnown && local.length) return {items:local,widened:false};
+  const exactLandmark = URUGUAY_PLACES.some(p=>
+    norm(p.main)===norm(q) || p.aliases.some(a=>norm(a)===norm(q)));
+  if((wellKnown||exactLandmark) && local.length) return {items:local,widened:false};
   try {
     const remote = await fetchCandidates(q,signal);
     const inCountry = remote.filter(x =>
