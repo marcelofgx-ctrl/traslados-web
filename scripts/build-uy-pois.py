@@ -126,7 +126,7 @@ def main():
     result = {
         "version": 1,
         "source": "© OpenStreetMap contributors (ODbL)",
-        "generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "generated": dt.datetime.now(dt.timezone.utc).date().isoformat(),
         "items": deduped,
     }
     dest = Path(args.output)
