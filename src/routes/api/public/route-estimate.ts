@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { parseRoadPoints, parseOrsGeojson } from "@/lib/road-route";
+import { parseRoadPoints, parseOrsGeojson, referenceFareUyu } from "@/lib/road-route";
 
 /** Un único proxy: la llave ORS queda en el Worker, jamás en el navegador.
  * No usar servidores de demostración como backend comercial.
@@ -40,7 +40,12 @@ export const Route = createFileRoute("/api/public/route-estimate")({
           const raw:unknown=await upstream.json();
           const result=parseOrsGeojson(raw);
           if(!result)return respond({available:false,reason:"no_route"},503);
-          return respond({...result,calculatedAt:new Date().toISOString()},200,"public, max-age=600, s-maxage=600");
+          // Mismo motor para calculadora, PWA Pages y reservas Premium.
+          // Precio orientativo; el Conductor envía el presupuesto final independiente.
+          const reference=referenceFareUyu(result.distanceKm,process.env["FARE_REFERENCE_UYU_PER_KM"]);
+          return respond({...result,calculatedAt:new Date().toISOString(),
+            ...(reference===null?{}:{referenceFareUyu:reference}),
+          },200,"public, max-age=600, s-maxage=600");
         }catch {
           return respond({available:false,reason:"temporarily_unavailable"},503);
         }finally{clearTimeout(timeout);}
