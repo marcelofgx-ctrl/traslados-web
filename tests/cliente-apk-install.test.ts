@@ -8,7 +8,7 @@ const installPage=readFileSync("src/routes/descargas.tsx","utf8");
 describe("Signed Cliente APK fallback for Workers PWA",()=>{
   it("serves the verified native Cliente under our own site, not a redirect",()=>{
     expect(route).toContain('createFileRoute("/api/public/cliente-apk")');
-    expect(route).toContain("traslados-cliente-premium-v13.apk");
+    expect(route).toContain("traslados-cliente-premium-v14.apk");
     expect(route).toContain('GET:async()=>transferClienteApk("GET")');
     expect(route).toContain('HEAD:async()=>transferClienteApk("HEAD")');
     expect(route).toContain('application/vnd.android.package-archive');
@@ -22,7 +22,7 @@ describe("Signed Cliente APK fallback for Workers PWA",()=>{
     expect(installPage).toContain("Aplicación Cliente Premium");
     expect(installPage).toContain("Una sola experiencia");
     expect(installPage).toContain("method:\"HEAD\"");
-    expect(installPage).toContain("Descargar APK Cliente 13.0");
+    expect(installPage).toContain("Descargar APK Cliente 14.0");
     expect(installPage).not.toContain("TrasladosConductor-v8.apk");
   });
   it("prefers browser installation, checking APK availability before offering it",()=>{
