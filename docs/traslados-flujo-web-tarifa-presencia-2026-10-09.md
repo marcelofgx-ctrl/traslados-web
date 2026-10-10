@@ -20,6 +20,10 @@ Archivos modificados en web: src/lib/road-route.ts, src/routes/api/public/route-
 
 IMPORTANTE: el CI del repositorio Web solo compila y verifica el Worker de forma LOCAL; no publica automáticamente la actualización a Cloudflare. Hasta que se despliegue el Worker y exista ORS_API_KEY, la PWA puede mostrar A confirmar. No confundir CI verde con distancia/importe comprobado en producción. La caché de rutas puede permanecer unos 10 minutos después de ajustar tarifa.
 
+## Retoma posterior — reserva Premium más compacta
+
+En commit [a876eae](https://github.com/marcelofgx-ctrl/traslados-web/commit/a876eae31f11da95903e81cb0b3e00fd3b8f6222) se sustituyeron las dos tarjetas repetidas de mapa/itinerario en `src/routes/index.tsx` por un desplegable **«Ver mapa detallado del recorrido»** que carga el mapa solo al abrir. Una vez escogidos A y B desaparece el marco/título redundante del panel exterior de Recorrido; queda una sola ficha A/B con km, minutos y precio de referencia, más el área de paradas desplegable. Se preserva enlace a Google Maps. **GitHub Actions** [38011297730](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38011297730) **SUCCESS** para ambas versiones de Bun en la compilación/verificación. **No fue desplegado Cloudflare**, por lo que aún no equivale a validación visual en producción.
+
 ## Recorrido completo real y próximo
 
 1. Portada: Reservar / Calcular distancia sin registro / Mis traslados. Son distintas la PWA Pages y Web Premium Cloudflare.
