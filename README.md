@@ -1,5 +1,9 @@
 # Traslados Web
 
+> **CONTEXTO MAESTRO COMPARTIDO — LEER ANTES DE RETOMAR:** https://github.com/marcelofgx-ctrl/traslados-android/blob/main/docs/CONTEXTO_MAESTRO_PROYECTOS.md
+>
+> Documento vivo de coordinación de **Mapa Trayectos / Conductor integrado / Cliente APK / GitHub Pages-PWA / esta web Cloudflare / Supabase**. Incluye enlaces correctos, estado de compilación y publicación, pendientes, privacidad GPS y convención de actualización. La información histórica de este README puede estar desactualizada; verificar siempre `main`, Actions y producción. **Actualizar el contexto maestro al terminar cada intervención importante**, especialmente si afecta a ambos repositorios.
+
 Web premium de reservas, agenda e historial de traslados en Uruguay.
 
 **Repositorio principal de la web:** https://github.com/marcelofgx-ctrl/traslados-web  
