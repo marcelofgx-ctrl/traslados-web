@@ -22,7 +22,7 @@ jobs:
       - name: Instalar dependencias congeladas
         run: bun install --frozen-lockfile
       - name: Probar integridad del sistema de reservas, Mapa y rutas
-        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/pickup-eta-policy.test.ts tests/workers-canonical.test.ts tests/public-branding.test.ts tests/location-permission.test.ts tests/guest-booking.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/pickup-eta-policy.test.ts tests/workers-canonical.test.ts tests/public-branding.test.ts tests/cliente-apk-install.test.ts tests/location-permission.test.ts tests/guest-booking.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
       - name: Verificar TypeScript
         run: bunx tsc --noEmit
       - name: Construir Worker y web
