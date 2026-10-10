@@ -107,7 +107,7 @@ jobs:
             http://127.0.0.1:8787/api/auth/passkey)"
           [ "$denied" = 403 ] || { cat /tmp/passkey-response.json; echo "Protección de origen falló: $denied"; exit 1; }
           echo "Passkey bloqueado sin claves e impide llamadas desde origen no permitido."
-      - name: Comprobar Edge ETA: cliente no autenticado no puede leer GPS
+      - name: "Comprobar Edge ETA - cliente no autenticado no puede leer GPS"
         shell: bash
         run: |
           set -euo pipefail
