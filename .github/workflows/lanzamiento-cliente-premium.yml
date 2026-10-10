@@ -62,6 +62,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # El Worker queda como infraestructura de rutas; la web definitiva
+          # de pasajeros (misma interfaz en PWA y Cliente v13) es GitHub Pages.
+          curl -fsSL --max-time 25 'https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/' -o /tmp/pasajero.html
+          grep -q 'Tu viaje' /tmp/pasajero.html
+          grep -q 'app.js?v=21' /tmp/pasajero.html
           curl -fsSL --max-time 25 https://traslados-web.marcelof-gx.workers.dev/ -o /tmp/home.html
           grep -q 'Cada viaje' /tmp/home.html
           grep -q 'data-app-release="traslados-2026-10-10-r4"' /tmp/home.html || {
@@ -75,14 +80,14 @@ jobs:
           curl -fsSI --max-time 25 "$url" -o /tmp/cliente-premium-head
           grep -qi '^content-type: application/vnd.android.package-archive' /tmp/cliente-premium-head
           grep -qi '^content-disposition: attachment' /tmp/cliente-premium-head
-          curl -fsSL --max-time 30 "$url" -o /tmp/traslados-cliente-premium-v12.apk
+          curl -fsSL --max-time 30 "$url" -o /tmp/traslados-cliente-premium-v13.apk
           curl -fsSL --max-time 25 \
             'https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/PREMIUM-SHA256SUMS.txt' \
             -o /tmp/PREMIUM-SHA256SUMS.txt
           (cd /tmp && sha256sum -c PREMIUM-SHA256SUMS.txt)
           python3 - <<'PYAPK'
           from pathlib import Path
-          apk=Path('/tmp/traslados-cliente-premium-v12.apk')
+          apk=Path('/tmp/traslados-cliente-premium-v13.apk')
           assert apk.stat().st_size>10000, 'APK inexistente o truncada'
           assert apk.read_bytes()[:2]==b'PK', 'El Worker sirvió una página y no APK'
           print('WORKERS OK: APK Cliente Premium descargable, íntegra y con marca oficial')
