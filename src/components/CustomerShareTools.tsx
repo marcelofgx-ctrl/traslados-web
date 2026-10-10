@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ShareQr } from "@/components/ShareQr";
 
-const WEB="https://traslados-web.marcelof-gx.workers.dev";
+const WEB="https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/";
 const PHONE="+59897228175";
 const CLIENTE_APK="/api/public/cliente-apk";
 type InstallPrompt=Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:"accepted"|"dismissed"}>};
@@ -81,7 +81,7 @@ export function CustomerShareTools() {
         // Workers confirmed the signed installer is available with HEAD.
         const a=document.createElement("a");
         a.href=CLIENTE_APK;
-        a.download="Traslados_Cliente_v11.5_R12_RELEASE.apk";
+        a.download="Traslados_Cliente_Premium_v13_RELEASE.apk";
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -138,7 +138,7 @@ export function CustomerShareTools() {
       {showInstall?<X className="size-4 text-primary"/>:<LinkIcon className="size-4 text-primary"/>}
     </button>
     {android&&apkAvailable&&!installation&&!installed&&<div className="mt-2 rounded-xl border border-primary/25 bg-primary/5 p-4 text-xs leading-6 text-[#d9e2d7]">
-      Chrome no ofreció la instalación automática. Podés descargar nuestra aplicación nativa Cliente 11.5-R12, firmada para Android, sin salir de Traslados. Su interfaz y funciones pueden diferir de esta web. Android puede solicitar permiso para instalarla.
+      Chrome no ofreció la instalación automática. Podés descargar nuestra aplicación nativa Cliente 13.0, firmada para Android. Abre esta misma web de Traslados. Android puede solicitar permiso para instalarla.
       <button type="button" onClick={()=>setShowInstall(v=>!v)} className="mt-2 block text-xs font-semibold text-primary underline">Prefiero instalar la versión web</button>
     </div>}
     {showInstall&&<div className="mt-2 rounded-xl bg-black/15 p-4 text-sm leading-6 text-[#cbdad5]">
