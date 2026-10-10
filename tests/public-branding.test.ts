@@ -16,6 +16,11 @@ describe("Public branding: Traslados, no development platforms",()=>{
     expect(page).toContain('data-app-release="traslados-2026-10-10-r4"');
     expect(page).not.toContain('data-web-release="workers-2026-10-10-r3"');
   });
+  it("sends visitors from old Workers homepage to the one approved passenger PWA",()=>{
+    expect(page).toContain('window.location.replace("https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/")');
+    expect(page).toContain('!new URLSearchParams(window.location.search).has("auth_email")');
+    expect(share).toContain('const WEB="https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/"');
+  });
   it("does not display technology names in trip pricing explanations",()=>{
     expect(summary).not.toContain("motor interno (OSRM)");
     expect(summary).not.toContain("guardada en Supabase");
