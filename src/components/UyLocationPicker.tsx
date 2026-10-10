@@ -23,6 +23,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
   const [mapOpen, setMapOpen] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [gpsError, setGpsError] = useState<number | null>(null);
+  const [gpsPreparation, setGpsPreparation] = useState(false);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -140,16 +141,36 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
       setResolving(false);
     }
   }
-  function currentPosition() {
+  async function currentPosition() {
     if (!navigator.geolocation || window.isSecureContext === false) {
       setGpsError(0);
+      setGpsPreparation(false);
       return;
     }
     if (resolving) return;
+    const android=/Android/i.test(navigator.userAgent||"");
+    let permissionState="prompt";
+    try {
+      const status=await navigator.permissions?.query({name:"geolocation"});
+      permissionState=status?.state??"prompt";
+    } catch {/* No todos los navegadores ofrecen consulta de permisos. */}
+    if (permissionState==="denied") {
+      setGpsPreparation(false);
+      setGpsError(1);
+    } else if (permissionState==="granted" || !android) {
+      requestGps();
+    } else {
+      // No disparar el diálogo nativo mientras puedan estar activas las burbujas.
+      setGpsError(null);
+      setGpsPreparation(true);
+    }
+  }
+  function requestGps() {
+    if (!navigator.geolocation || resolving) return;
+    setGpsPreparation(false);
     setGpsError(null);
     setResolving(true);
-    // Android/Chrome son los únicos que pueden conceder el permiso.
-    // Esta llamada proviene del botón del pasajero, no de una carga automática.
+    // Android/Chrome deciden la concesión; se invoca tras un toque explícito.
     navigator.geolocation.getCurrentPosition(
       (p) => { void chooseOnMap({ lat: p.coords.latitude, lng: p.coords.longitude }); },
       (error) => {
@@ -254,6 +275,17 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
         <Button size="sm" type="button" variant="outline" onClick={() => setMapOpen(v => !v)}><MapPinned className="mr-2 size-4" /> {mapOpen ? "Cerrar mapa" : "Elegir en mapa"}</Button>
         <Button size="sm" type="button" variant="ghost" onClick={currentPosition} disabled={resolving}><Crosshair className="mr-2 size-4" /> Mi ubicación</Button>
       </div>
+      {gpsPreparation && (
+        <div role="status" className="mt-3 space-y-3 rounded-2xl border border-[#d6b672]/45 bg-[linear-gradient(130deg,rgba(214,177,105,.11),rgba(8,39,45,.65))] p-4 text-xs leading-6 text-[#e5e5d8]">
+          <strong className="block font-display text-sm text-[#f1d89f]">Prepará el permiso de ubicación</strong>
+          <p>Si aparecen burbujas flotantes de Uber, Cabify o Mapa Trayectos, Android bloquea la autorización. Cuando estés estacionado, cerralas temporalmente. No hace falta desinstalar ninguna aplicación.</p>
+          <p>Después tocá «Solicitar permiso». Si preferís, podés completar el origen escribiendo una dirección.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" type="button" variant="outline" onClick={requestGps} disabled={resolving}>Solicitar permiso</Button>
+            <Button size="sm" type="button" variant="ghost" onClick={() => { setGpsPreparation(false); document.getElementById(id)?.focus(); }}>Escribir origen</Button>
+          </div>
+        </div>
+      )}
       {gpsError !== null && (
         <div role="alert" className="mt-3 space-y-3 rounded-2xl border border-[#d6b672]/45 bg-[linear-gradient(130deg,rgba(214,177,105,.11),rgba(8,39,45,.65))] p-4 text-xs leading-6 text-[#e5e5d8]">
           <strong className="block font-display text-sm text-[#f1d89f]">
@@ -261,7 +293,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
           </strong>
           {gpsError === 1 ? (
             <ol className="list-decimal space-y-2 pl-5">
-              <li>Ocultá las burbujas y ventanas flotantes de Mapa Trayectos u otras aplicaciones.</li>
+              <li>Cuando estés estacionado, cerrá las burbujas flotantes de Uber, Cabify o Mapa Trayectos.</li>
               <li>En Chrome abrí los controles junto a la dirección → Permisos → Ubicación → Permitir.</li>
               <li>Si Chrome sigue bloqueado: Ajustes de Android → Aplicaciones → Chrome → Permisos → Ubicación → Permitir mientras se usa la aplicación, y ubicación precisa.</li>
             </ol>
