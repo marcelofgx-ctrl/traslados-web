@@ -9,8 +9,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * Esta ruta nunca recibe una URL externa indicada por el usuario (no SSRF).
  */
 const VERIFIED_CLIENTE_APK =
-  "https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/traslados-cliente-v11.5-r12.apk";
-const FILE_NAME="Traslados_Cliente_v11.5_R12_RELEASE.apk";
+  "https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/traslados-cliente-premium-v12.apk";
+const FILE_NAME="Traslados_Cliente_Premium_v12_RELEASE.apk";
 const TYPE="application/vnd.android.package-archive";
 
 function unavailable() {
@@ -31,7 +31,7 @@ async function transferClienteApk(method:"GET"|"HEAD") {
     const mime=(source.headers.get("Content-Type")??"").toLowerCase();
     const length=Number(source.headers.get("Content-Length")??"0");
     // Never serve a 404 HTML page renamed to .apk or a truncated artifact.
-    if(/text\/html|application\/json|text\/plain/.test(mime) || (length>0&&length<100000))
+    if(/text\/html|application\/json|text\/plain/.test(mime) || (length>0&&length<10000))
       return unavailable();
     const headers:Record<string,string>={
       "Content-Type":TYPE,
