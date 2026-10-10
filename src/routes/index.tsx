@@ -20,6 +20,8 @@ import { RoutePreview } from "@/components/RoutePreview";
 import { BookingQuickSummary } from "@/components/BookingQuickSummary";
 import { PickupModePicker, type PickupMode } from "@/components/PickupModePicker";
 import { DriverPickupEta } from "@/components/DriverPickupEta";
+import { GuestRoutePlanner } from "@/components/GuestRoutePlanner";
+import { saveGuestDraft, loadGuestDraft, clearGuestDraft, type GuestRouteDraft } from "@/lib/guest-route-draft";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, AVAILABILITY_REASON, checkAvailability, createReservation, getProfile,
@@ -131,10 +133,12 @@ function Access({success,onRegister,onRecover}:{success:()=>void,onRegister:()=>
     </div>
   </section>;
 }
-function Booking({ customer, token, onSent, previous }: {customer:string,token:string,onSent:(code:string)=>void,previous:OpReservation|null}) {
+function Booking({ customer, token, onSent, previous, guestDraft }: {
+ customer:string;token:string;onSent:(code:string)=>void;previous:OpReservation|null;guestDraft:GuestRouteDraft|null;
+}) {
   const [date,setDate]=useState(()=>mvdNow().date),[time,setTime]=useState(""),[passengers,setPassengers]=useState(1);
-  const [origin,setOrigin]=useState<Loc|null>(previous?{text:previous.origin_text,lat:previous.origin_lat,lng:previous.origin_lng,department:previous.origin_department??null}:null),[destination,setDestination]=useState<Loc|null>(previous?{text:previous.destination_text,lat:previous.destination_lat,lng:previous.destination_lng,department:previous.destination_department??null}:null);
-  const [stops,setStops]=useState<Stop[]>(()=>previous?.stops?.map((x,i)=>({id:i+1,value:{text:x.address_text,lat:x.lat,lng:x.lng,department:x.department}}))??[]),[nextId,setNextId]=useState((previous?.stops?.length??0)+1);
+  const [origin,setOrigin]=useState<Loc|null>(previous?{text:previous.origin_text,lat:previous.origin_lat,lng:previous.origin_lng,department:previous.origin_department??null}:guestDraft?.origin??null),[destination,setDestination]=useState<Loc|null>(previous?{text:previous.destination_text,lat:previous.destination_lat,lng:previous.destination_lng,department:previous.destination_department??null}:guestDraft?.destination??null);
+  const [stops,setStops]=useState<Stop[]>(()=>previous?.stops?.map((x,i)=>({id:i+1,value:{text:x.address_text,lat:x.lat,lng:x.lng,department:x.department}}))??guestDraft?.stops.map((value,i)=>({id:i+1,value}))??[]),[nextId,setNextId]=useState((previous?.stops?.length??guestDraft?.stops.length??0)+1);
   const routeStops=useMemo(()=>stops.map(s=>s.value).filter((s):s is Loc=>Boolean(s)),[stops]);
   const [comments,setComments]=useState(""),[forOther,setForOther]=useState(Boolean(previous?.passenger_name)),[otherName,setOtherName]=useState(previous?.passenger_name??""),[otherPhone,setOtherPhone]=useState(previous?.passenger_phone??"");
   const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false);
@@ -325,10 +329,21 @@ function TrasladosWeb() {
   const session=useCustomerSession();
   const [view,setView]=useState<View>("inicio"),[wanted,setWanted]=useState<"reserva"|"historial">("reserva");
   const [valid,setValid]=useState<string|null>(null),[sent,setSent]=useState(""),[previous,setPrevious]=useState<OpReservation|null>(null);
+  const [guestDraft,setGuestDraft]=useState<GuestRouteDraft|null>(null);
+  useEffect(()=>{setGuestDraft(loadGuestDraft());},[]);
   useEffect(()=>{const flow = new URLSearchParams(window.location.search).get("auth_email"); if(flow==="registro" || flow==="recuperar") setView(flow);},[]);
   useEffect(()=>{if(!session?.token){setValid(null);return;}let active=true;getProfile(session.token).then(p=>{if(!active)return;if(p)setValid(session.token);else{writeSession(null);setValid(null);setView("acceso");}}).catch(()=>{if(active)toast.error("No pudimos validar tu sesión con el servidor.");});return()=>{active=false;};},[session?.token]);
   const signed=Boolean(session&&session.token===valid);
-  function go(v:View){if(v==="reserva")setPrevious(null);if((v==="reserva"||v==="historial")&&!signed){setWanted(v);setView("acceso");}else setView(v);if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}
+  function go(v:View){
+    if(v==="reserva")setPrevious(null);
+    if(v==="historial"&&!signed){setWanted(v);setView("acceso");}
+    else setView(v);
+    if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function continueGuest(draft:GuestRouteDraft){
+    setGuestDraft(draft);saveGuestDraft(draft);setWanted("reserva");setView("acceso");
+    if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});
+  }
   const onAccess=()=>setView(wanted);
   return <main className="min-h-screen overflow-x-hidden">
     <Header go={go} name={signed?session?.customer.full_name:undefined}/>
@@ -337,7 +352,11 @@ function TrasladosWeb() {
     {view==="recuperar" && <PasskeyAccess mode="recuperacion" onDone={()=>setView(wanted)} onBack={()=>setView("acceso")}/>}
     {view==="vincular" && (signed ? <PasskeyAccess mode="vincular" sessionToken={session!.token} onDone={()=>setView("historial")} onBack={()=>setView("acceso")}/> : <Access success={onAccess} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/> )}
     {view==="acceso"&&(signed?<section className="mx-auto max-w-lg px-5 py-16 text-center"><CheckCircle2 className="mx-auto size-12 text-success"/><h1 className="mt-4 font-display text-2xl">Sesión iniciada</h1><p className="mt-3 text-sm text-muted-foreground">{session?.customer.full_name}</p><div className="mt-6 flex justify-center gap-2"><Button onClick={()=>go("historial")}>Mis viajes</Button><Button variant="outline" onClick={()=>go("reserva")}>Reservar</Button></div><Button variant="outline" className="mt-6" onClick={()=>setView("vincular")}><Fingerprint className="mr-2 size-4"/> Activar huella</Button><Button variant="ghost" className="mt-6" onClick={()=>{if(session)void logout(session.token);setValid(null);setView("inicio");}}><LogOut className="mr-2 size-4"/> Cerrar sesión</Button></section>:<Access success={onAccess} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
-    {view==="reserva"&&(signed?<Booking key={previous?.id??"new"} previous={previous} token={session!.token} customer={session!.customer.full_name} onSent={code=>{setSent(code);setPrevious(null);setView("enviada");}}/>:<Access success={()=>setView("reserva")} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
+    {view==="reserva"&&(signed?<Booking key={previous?.id??"new"}
+      previous={previous} guestDraft={previous?null:guestDraft}
+      token={session!.token} customer={session!.customer.full_name}
+      onSent={code=>{setSent(code);setPrevious(null);setGuestDraft(null);clearGuestDraft();setView("enviada");}}/>:
+      <GuestRoutePlanner initialDraft={guestDraft} onContinue={continueGuest}/> )}
     {view==="historial"&&(signed?<HistoryView token={session!.token} go={go} onRepeat={r=>{setPrevious(r);setView("reserva");if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});}}/>:<Access success={()=>setView("historial")} onRegister={()=>setView("registro")} onRecover={()=>setView("recuperar")}/>)}
     {view==="enviada"&&<section className="mx-auto max-w-lg px-5 py-20 text-center"><CheckCircle2 className="mx-auto size-16 text-success"/><h1 className="mt-5 font-display text-3xl">Solicitud recibida</h1><p className="mt-3 text-sm text-muted-foreground">Queda pendiente de confirmación del conductor.</p><div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-5"><p className="text-xs uppercase tracking-[.2em] text-primary">Código de reserva</p><p className="mt-2 font-display text-3xl font-semibold">{sent}</p></div><Button className="mt-7 h-12 w-full" onClick={()=>go("historial")}>Ver mis traslados</Button></section>}
     <footer className="border-t border-border/60 bg-[#0d2026]">
