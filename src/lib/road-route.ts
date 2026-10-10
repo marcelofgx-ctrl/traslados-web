@@ -2,7 +2,7 @@
 export type RoadPoint={lat:number;lng:number};
 export type RoadRoute={
   available:true; distanceKm:number; durationMin:number;
-  source:"openrouteservice"; geometry: Array<[number,number]>;
+  source:"openrouteservice"|"supabase_route_cache"; geometry: Array<[number,number]>;
   calculatedAt:string;
   /** Estimación pública no vinculante; solo si se calculó ruta real por carretera. */
   referenceFareUyu?:number;
