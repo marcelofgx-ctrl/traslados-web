@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const route=readFileSync("src/routes/api/public/cliente-apk.ts","utf8");
 const ui=readFileSync("src/components/CustomerShareTools.tsx","utf8");
+const installPage=readFileSync("src/routes/descargas.tsx","utf8");
 
 describe("Signed Cliente APK fallback for Workers PWA",()=>{
   it("serves the verified native Cliente under our own site, not a redirect",()=>{
@@ -16,6 +17,13 @@ describe("Signed Cliente APK fallback for Workers PWA",()=>{
     expect(route).toContain("installer_not_available");
     expect(route).toContain("text\\/html");
     expect(route).not.toContain("new URL(request.url).searchParams.get");
+  });
+  it("publishes the customer installer page without a public Conductor APK",()=>{
+    expect(installPage).toContain("Aplicación Cliente Premium");
+    expect(installPage).toContain("Una sola experiencia");
+    expect(installPage).toContain("method:\"HEAD\"");
+    expect(installPage).toContain("Descargar APK Cliente 12.0");
+    expect(installPage).not.toContain("TrasladosConductor-v8.apk");
   });
   it("prefers browser installation, checking APK availability before offering it",()=>{
     expect(ui).toContain("beforeinstallprompt");
