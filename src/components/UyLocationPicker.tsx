@@ -22,6 +22,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
   const [message, setMessage] = useState("");
   const [mapOpen, setMapOpen] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [gpsError, setGpsError] = useState<number | null>(null);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -124,21 +125,37 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
       return;
     }
     setResolving(true);
-    const r = await reverseUy(point.lat, point.lng);
-    onChange({ text: r.text, lat: point.lat, lng: point.lng, department: r.department || (department === ALL_URUGUAY ? null : department) });
-    setQuery("");
-    setMessage("");
-    setSuggestions([]);
-    setMapOpen(false);
-    setResolving(false);
+    try {
+      const r = await reverseUy(point.lat, point.lng);
+      onChange({ text: r.text, lat: point.lat, lng: point.lng, department: r.department || (department === ALL_URUGUAY ? null : department) });
+      setQuery("");
+      setMessage("");
+      setGpsError(null);
+      setSuggestions([]);
+      setMapOpen(false);
+    } catch {
+      setMessage("No pudimos obtener el nombre de la dirección. Seleccioná otro punto o escribila.");
+    } finally {
+      setResolving(false);
+    }
   }
-  async function currentPosition() {
-    if (!navigator.geolocation) { setMessage("Tu dispositivo no permite obtener la ubicación."); return; }
+  function currentPosition() {
+    if (!navigator.geolocation || window.isSecureContext === false) {
+      setGpsError(0);
+      return;
+    }
+    if (resolving) return;
+    setGpsError(null);
     setResolving(true);
+    // Android/Chrome son los únicos que pueden conceder el permiso.
+    // Esta llamada proviene del botón del pasajero, no de una carga automática.
     navigator.geolocation.getCurrentPosition(
       (p) => { void chooseOnMap({ lat: p.coords.latitude, lng: p.coords.longitude }); },
-      () => { setResolving(false); setMessage("No pudimos acceder al GPS. Revisá los permisos."); },
-      { enableHighAccuracy: true, timeout: 10000 },
+      (error) => {
+        setResolving(false);
+        setGpsError(error.code);
+      },
+      { enableHighAccuracy: true, timeout: 14000, maximumAge: 15000 },
     );
   }
   function departmentButton(idValue: string) {
@@ -234,8 +251,29 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
       {message && <p className="text-xs text-warning" role="status">{message}</p>}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" type="button" variant="outline" onClick={() => setMapOpen(v => !v)}><MapPinned className="mr-2 size-4" /> {mapOpen ? "Cerrar mapa" : "Elegir en mapa"}</Button>
-        <Button size="sm" type="button" variant="ghost" onClick={() => void currentPosition()} disabled={resolving}><Crosshair className="mr-2 size-4" /> Mi ubicación</Button>
+        <Button size="sm" type="button" variant="ghost" onClick={currentPosition} disabled={resolving}><Crosshair className="mr-2 size-4" /> Mi ubicación</Button>
       </div>
+      {gpsError !== null && (
+        <div role="alert" className="mt-3 space-y-3 rounded-2xl border border-[#d6b672]/45 bg-[linear-gradient(130deg,rgba(214,177,105,.11),rgba(8,39,45,.65))] p-4 text-xs leading-6 text-[#e5e5d8]">
+          <strong className="block font-display text-sm text-[#f1d89f]">
+            {gpsError === 1 ? "Android bloqueó el permiso de ubicación" : gpsError === 3 ? "El GPS está demorando" : gpsError === 2 ? "No se pudo determinar tu posición" : "Ubicación no disponible"}
+          </strong>
+          {gpsError === 1 ? (
+            <ol className="list-decimal space-y-2 pl-5">
+              <li>Ocultá las burbujas y ventanas flotantes de Mapa Trayectos u otras aplicaciones.</li>
+              <li>En Chrome abrí los controles junto a la dirección → Permisos → Ubicación → Permitir.</li>
+              <li>Si Chrome sigue bloqueado: Ajustes de Android → Aplicaciones → Chrome → Permisos → Ubicación → Permitir mientras se usa la aplicación, y ubicación precisa.</li>
+            </ol>
+          ) : (
+            <p>{gpsError === 3 ? "Activá el GPS y volvé a intentarlo con mejor señal." : "Podés reintentar o ingresar tu origen manualmente."}</p>
+          )}
+          <p className="text-[11px] text-[#c6d8ce]">El permiso lo concede Android; Traslados no puede activarlo por su cuenta.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" type="button" variant="outline" onClick={currentPosition} disabled={resolving}>Volver a intentar</Button>
+            <Button size="sm" type="button" variant="ghost" onClick={() => { setGpsError(null); document.getElementById(id)?.focus(); }}>Escribir dirección</Button>
+          </div>
+        </div>
+      )}
       {mapOpen && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">Tocá el punto exacto sobre el mapa. Podés acercar con los dedos.</p>
