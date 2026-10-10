@@ -122,6 +122,7 @@ export function UyLocationPicker({ label, value, onChange, id }: Props) {
   async function chooseOnMap(point: { lat: number; lng: number }) {
     if (!inUruguay(point.lat, point.lng)) {
       setMessage("Elegí un punto dentro de Uruguay.");
+      setResolving(false);
       return;
     }
     setResolving(true);
