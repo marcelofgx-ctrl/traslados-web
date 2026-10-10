@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { localUyPlaces, URUGUAY_PLACES } from "../src/lib/uy-places";
 import { searchUy, ALL_URUGUAY, inUruguay } from "../src/lib/uy-geo";
-import { encodeRoadPoints, parseRoadPoints, parseOrsGeojson } from "../src/lib/road-route";
+import { encodeRoadPoints, parseRoadPoints, parseOrsGeojson, referenceFareUyu } from "../src/lib/road-route";
 
 describe("Geo rápido Uruguay",()=>{
   it("resuelve inmediatamente el aeropuerto Carrasco en su terminal de pasajeros",async()=>{
@@ -60,5 +60,22 @@ describe("Rutas reales, sin falsificar kilómetros",()=>{
   it("rechaza respuestas sin ruta válida",()=>{
     expect(parseOrsGeojson({features:[]})).toBeNull();
     expect(parseOrsGeojson({features:[{properties:{summary:{distance:30,duration:20}},geometry:{coordinates:[[13,48]]}}]})).toBeNull();
+  });
+});
+
+describe("Tarifa orientativa paramétrica (nunca presupuesto final)",()=>{
+  it("8 km = $320 con la tarifa base interna",()=>{
+    expect(referenceFareUyu(8)).toBe(320);
+    expect(referenceFareUyu(43)).toBe(1720);
+  });
+  it("ajusta la tarifa desde configuración interna sin modificar el frontend",()=>{
+    expect(referenceFareUyu(8,"50")).toBe(400);
+    expect(referenceFareUyu(8,"30.5")).toBe(240);
+  });
+  it("no inventa presupuesto cuando no hay ruta o la configuración es inválida",()=>{
+    expect(referenceFareUyu(Number.NaN)).toBeNull();
+    expect(referenceFareUyu(0)).toBeNull();
+    expect(referenceFareUyu(-7)).toBeNull();
+    expect(referenceFareUyu(8,"invalido")).toBeNull();
   });
 });
