@@ -20,7 +20,7 @@ describe("Canonical Workers public site",()=>{
     expect(config.name).toBe("traslados-web");
     expect(config.vars.PASSKEY_PUBLIC_ORIGIN).toBe("https://traslados-web.marcelof-gx.workers.dev");
     expect(config.keep_vars).toBe(true);
-    expect(booking).toContain('data-web-release="workers-2026-10-10-r3"');
+    expect(booking).toContain('data-app-release="traslados-2026-10-10-r4"');
   });
   it("uses one compact pickup panel for authenticated passengers",()=>{
     expect(booking).toContain("<PickupModePicker");
