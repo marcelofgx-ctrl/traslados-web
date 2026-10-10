@@ -15,7 +15,8 @@ export function GuestRoutePlanner({initialDraft,onContinue}:{
   const [destination,setDestination]=useState<Loc|null>(initialDraft?.destination??null);
   const [stops,setStops]=useState<Array<Loc|null>>(()=>initialDraft?.stops??[]);
   const [expanded,setExpanded]=useState(Boolean(initialDraft?.stops.length));
-  const valid=Boolean(origin&&destination&&stops.every(Boolean));
+  const stopsComplete=stops.every(Boolean);
+  const valid=Boolean(origin&&destination&&stopsComplete);
   function swap(){
     if(!origin||!destination)return;
     setOrigin(destination);setDestination(origin);
@@ -42,7 +43,7 @@ export function GuestRoutePlanner({initialDraft,onContinue}:{
       <div className="flex items-center gap-2 text-[#efd5a5]">
         <Navigation2 className="size-5"/><h2 className="font-display text-lg font-semibold">Origen y destino</h2>
       </div>
-      {origin&&destination?<BookingQuickSummary origin={origin} destination={destination}
+      {origin&&destination&&stopsComplete?<BookingQuickSummary origin={origin} destination={destination}
         stops={stops.filter((x):x is Loc=>Boolean(x))}
         onEditOrigin={()=>setOrigin(null)} onEditDestination={()=>setDestination(null)}
         onSwap={swap}/>:<>
@@ -61,6 +62,10 @@ export function GuestRoutePlanner({initialDraft,onContinue}:{
           <span className="text-xs text-primary">Editar</span>
         </button>:<UyLocationPicker id="guest-destination" label="02 · Destino" value={null} onChange={setDestination}/>}
       </>}
+      {origin&&destination&&!stopsComplete&&<p role="status"
+        className="rounded-xl border border-[#cdbb8b]/30 bg-[#ccac68]/10 p-3 text-xs leading-5 text-[#edd6a7]">
+        Completá o eliminá las paradas pendientes antes de calcular el recorrido y su precio.
+      </p>}
       <div className="border-t border-primary/15 pt-2">
         <button type="button" onClick={()=>setExpanded(v=>!v)} aria-expanded={expanded}
           className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-xs font-semibold text-[#efd5a5]">
@@ -93,7 +98,7 @@ export function GuestRoutePlanner({initialDraft,onContinue}:{
         </div>}
       </div>
     </div>
-    {origin&&destination&&<BookingRouteDetails origin={origin} destination={destination}
+    {origin&&destination&&stopsComplete&&<BookingRouteDetails origin={origin} destination={destination}
       stops={stops.filter((x):x is Loc=>Boolean(x))}/>}
     <div className="premium-glass rounded-2xl border border-[#d4b16d]/40 bg-[linear-gradient(110deg,rgba(214,177,105,.12),rgba(8,39,45,.65))] p-4 sm:p-5">
       <div className="flex items-start gap-2">
