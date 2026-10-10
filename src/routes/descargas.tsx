@@ -13,6 +13,11 @@ export const Route=createFileRoute("/descargas")({
   component:InstallPremium,
 });
 function InstallPremium(){
+  useEffect(()=>{
+    // Los enlaces heredados del instalador llevan a la única PWA aprobada.
+    if(window.location.hostname==="traslados-web.marcelof-gx.workers.dev")
+      window.location.replace("https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/");
+  },[]);
   const [checking,setChecking]=useState(true);
   const [available,setAvailable]=useState(false);
   const check=useCallback(async()=>{
@@ -48,9 +53,9 @@ function InstallPremium(){
           <p className="mt-6 text-[10px] font-semibold uppercase tracking-[.16em] text-[#d7bd82]">Android</p>
           <h2 id="app-native" className="mt-2 font-display text-2xl text-[#f7ebd8]">Aplicación Cliente Premium</h2>
           <p className="mt-3 min-h-20 text-sm leading-6 text-[#b9cbc5]">Instalación nativa, con ícono propio y permisos de Android. Abre la experiencia oficial de Traslados sin depender del menú de instalación de Chrome.</p>
-          {available?<a href={APK} download="Traslados_Cliente_Premium_v12_RELEASE.apk"
+          {available?<a href={APK} download="Traslados_Cliente_Premium_v13_RELEASE.apk"
             className="premium-primary-button mt-5 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-[#10272d]">
-            <Download className="size-4"/> Descargar APK Cliente 12.0 <ArrowRight className="size-4"/>
+            <Download className="size-4"/> Descargar APK Cliente 13.0 <ArrowRight className="size-4"/>
           </a>:<button type="button" onClick={()=>void check()} disabled={checking}
             className="mt-5 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-[#e2c78c]">
             <RefreshCw className="size-4"/> {checking?"Verificando instalador…":"Reintentar disponibilidad"}
