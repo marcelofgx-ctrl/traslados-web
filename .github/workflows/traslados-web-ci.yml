@@ -35,7 +35,7 @@ jobs:
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
       - name: Pruebas seguridad origen WebAuthn
-        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/pickup-eta-policy.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
       - name: Compilar web sin Lovable
         run: bun run build
       - name: Comprobar TypeScript estrictamente
@@ -107,6 +107,28 @@ jobs:
             http://127.0.0.1:8787/api/auth/passkey)"
           [ "$denied" = 403 ] || { cat /tmp/passkey-response.json; echo "Protección de origen falló: $denied"; exit 1; }
           echo "Passkey bloqueado sin claves e impide llamadas desde origen no permitido."
+      - name: Comprobar Edge ETA: cliente no autenticado no puede leer GPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl -sSL --max-time 18 -o /tmp/pickup-eta-denied.json \
+            -D /tmp/pickup-eta-denied.headers -w '%{http_code}' \
+            -X POST 'https://zetaudvvutlouiqxopvg.supabase.co/functions/v1/pickup-eta' \
+            -H 'Origin: https://marcelofgx-ctrl.github.io' \
+            -H 'apikey: sb_publishable_HnbMZW2dKpm6mBq-y5qkaA_Jlfx4BB9' \
+            -H 'Content-Type: application/json' \
+            --data '{"sessionToken":"invalid-test-token-that-cannot-authenticate-123456789","originLat":-34.832,"originLng":-56.08}')"
+          printf 'Edge invalid-session HTTP: %s\n' "$status"
+          test "$status" = "401"
+          python3 - <<'PY'
+          import json
+          with open('/tmp/pickup-eta-denied.json') as f:d=json.load(f)
+          assert d.get("available") is False and d.get("reason")=="login_required"
+          assert "driverLat" not in d and "driverLng" not in d
+          print("PASS: no se filtraron coordenadas ni disponibilidad a sesión inválida")
+          PY
+          grep -qi '^access-control-allow-origin: https://marcelofgx-ctrl.github.io' /tmp/pickup-eta-denied.headers
+
       - name: Diagnóstico de ruta real publicada en Cloudflare (sin desplegar ni leer secretos)
         shell: bash
         run: |
