@@ -327,6 +327,14 @@ function HistoryView({ token, go, onRepeat }:{token:string,go:(v:View)=>void,onR
 }
 
 function TrasladosWeb() {
+  // Desde el 10/10/2026 el único enlace público de pasajeros es GitHub Pages.
+  // Este Worker permanece para APIs de rutas/tarifas y accesos heredados.
+  useEffect(()=>{
+    if(window.location.hostname==="traslados-web.marcelof-gx.workers.dev"
+       && !new URLSearchParams(window.location.search).has("auth_email")){
+      window.location.replace("https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/");
+    }
+  },[]);
   const session=useCustomerSession();
   const [view,setView]=useState<View>("inicio"),[wanted,setWanted]=useState<"reserva"|"historial">("reserva");
   const [valid,setValid]=useState<string|null>(null),[sent,setSent]=useState(""),[previous,setPrevious]=useState<OpReservation|null>(null);
