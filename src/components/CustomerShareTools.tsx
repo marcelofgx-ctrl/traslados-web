@@ -14,7 +14,7 @@ export function CustomerShareTools() {
   const [showQR,setShowQR]=useState(false);
   const [installation,setInstallation]=useState<InstallPrompt|null>(null);
   const [apkAvailable,setApkAvailable]=useState(false);
-  const [installed,setInstalled]=useState(false);
+  const [installed,setInstalled]=useState(()=>typeof window!=="undefined"&&window.matchMedia?.("(display-mode: standalone)").matches===true);
   const android=typeof navigator!=="undefined"&&/Android/i.test(navigator.userAgent);
   useEffect(()=>{
     if(!android)return;
