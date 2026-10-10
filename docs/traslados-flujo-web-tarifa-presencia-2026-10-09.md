@@ -10,6 +10,17 @@ Se habilitó despliegue MANUAL y controlado del Worker en GitHub Actions: .githu
 
 **Clasificación actual:** Pages PWA v4 PUBLICADA y smoke VALIDADO; Cloudflare web build CI SUCCESS; precio en Worker IMPLEMENTADO EN CÓDIGO, NO ACTIVO EN PRODUCCIÓN; GPS comercial / ETA conductor NO IMPLEMENTADOS.
 
+## ACTUALIZACIÓN VIVA 10/10/2026 — IMPLEMENTADO, NO ACTIVADO HASTA OPT-IN
+
+- Supabase operativo `zetaudvvutlouiqxopvg` cuenta con `driver_live_presence` privado y funciones `mapa_presence_consent_v1`, `mapa_presence_ping_v1`, `driver_pickup_eta_context_v1` (solo service_role; RLS impide que anon vea coordenadas). No hay una posición de conductor en producción hasta que el usuario autorice GPS en la APK de Mapa R24.5.
+- Edge Function `pickup-eta` ACTIVA y protegida mediante token válido de sesión de Cliente, 3 consultas/min y 20/h por cliente. Respuesta únicamente km y minutos redondeados y condición sujeto a aprobación, jamás lat/lon. Prueba negativa en [Actions 38019205391](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38019205391) SUCCESS, sin token válido respondió HTTP 401. Se utiliza ORS ya configurado en el Worker solo entre servidores.
+- PWA pública `web-pasajero/` v12 consulta ETA cuando el pasajero inicia sesión, selecciona origen y «Ahora» / «En 10 min». Funcionalidad de urgencia sigue como **consulta** y no crea reserva bajo `lead_time_min=30` minutos. Pages y PWA CI SUCCESS [38019114673](https://github.com/marcelofgx-ctrl/traslados-android/actions/runs/38019114673).
+- Web Premium: componente [DriverPickupEta.tsx](../src/components/DriverPickupEta.tsx), incluido en `src/routes/index.tsx`. GitHub Actions CI [38019205391](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38019205391) SUCCESS, **NO se desplegó el Worker actualizado**. Necesita despliegue manual autenticado en Cloudflare. No confundir CI con publicación.
+- Cliente Android nativo 11.5-R11 firmada, run [38019069484](https://github.com/marcelofgx-ctrl/traslados-android/actions/runs/38019069484) SUCCESS; diálogo de ETA en botones Ahora/+10 sin invocar reserva inválida. Mapa Trayectos R24.5 versionCode 47, release firmada tras corrección nombre del artefacto [38019254898](https://github.com/marcelofgx-ctrl/traslados-android/actions/runs/38019254898); parche posterior «apagado local sin conexión» compilándose en Actions [38019431505](https://github.com/marcelofgx-ctrl/traslados-android/actions/runs/38019431505).
+- El flujo Samsung real **no está probado aún**; hasta que el conductor autorice compartir la disponibilidad en Mapa y realice conducción con GPS reciente no se expondrá ETA, intencionalmente.
+
+**Documentación detallada canónica:** [Mapa GPS/recogidas](https://github.com/marcelofgx-ctrl/traslados-android/blob/main/docs/DISPO_AUTOMATICA_Y_ETA_RECOGIDA.md).
+
 ## Política de precio de referencia (implementada en código; publicación Cloudflare a verificar)
 
 El motor de rutas existente es GET /api/public/route-estimate, en traslados-web. Usa openrouteservice para kilómetros por CALLES y minutos, no distancia aérea. Su respuesta ahora incluye referenceFareUyu si ORS ofrece una ruta válida. La variable de entorno interna FARE_REFERENCE_UYU_PER_KM configura la referencia, por defecto 40 UYU por km. Así, 8 km = $320; 43 km = $1720. Se redondea al múltiplo de 10 UYU; no incluye peajes, esperas, extras, nocturnidad, ni viaje del conductor hasta el origen. No muestra cifras si faltan rutas reales o si el parámetro de tarifa es inválido.
