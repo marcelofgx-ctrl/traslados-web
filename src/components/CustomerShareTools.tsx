@@ -84,7 +84,7 @@ export function CustomerShareTools() {
       <div className="flex shrink-0 items-center justify-center rounded-xl border-[7px] border-[#fffaf0] bg-[#fffaf0] p-1"><ShareQr size={172}/></div>
       <div className="max-w-md space-y-2">
         <p className="font-display text-lg text-[#f8ebd2]">Escaneá y reservá</p>
-        <p className="text-sm leading-6 text-[#c5d7d0]">Este QR abre directamente nuestra web en Cloudflare. Podés mostrarlo a un pasajero para que guarde el enlace.</p>
+        <p className="text-sm leading-6 text-[#c5d7d0]">Este QR abre el sitio oficial de Traslados. Podés compartirlo para que el pasajero guarde nuestro contacto.</p>
         <button onClick={()=>void copySite()} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"><Copy className="size-4"/> Copiar dirección</button>
       </div>
     </div>}
