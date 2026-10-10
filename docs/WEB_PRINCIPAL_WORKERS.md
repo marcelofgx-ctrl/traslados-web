@@ -18,6 +18,22 @@
 - **MEJORA IMPLEMENTADA Y PROBADA CI 10/10:** el botón Reservar de Workers ahora muestra `GuestRoutePlanner` a usuarios sin sesión: origen, destino, hasta ocho paradas con ajuste y orden, km/min por carretera y tarifa orientativa calculada por `BookingQuickSummary`/`useRoadEstimate` (motor ORS/Caché). No se llama a `createReservation` ni `checkAvailability` en el componente invitado. Al pulsar «Continuar para solicitar» se guarda un borrador tipado en estado y `sessionStorage` con TTL 2 h; después del acceso el formulario `Booking` inicializa origen/destino/paradas de ese borrador, consulta agenda con token, y requiere revisión y envío autenticados. Se borra borrador solo después de `onSent` exitoso. La sesión no es necesaria para estimar, pero SÍ para reservar; un presupuesto de referencia no es definitivo. CI [38023590926](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38023590926) SUCCESS con tests guest, TS, build y Worker HTTP local. **NO afirmar que fue desplegado en Workers** hasta ejecutar el workflow manual de publicación y revisar producción.
 - `wrangler.jsonc` usa `keep_vars:true` y NO contiene `ORS_API_KEY`; no introducir claves en GitHub. Se había visto en una captura de Cloudflare como Variable visible; conviene rotar y configurar como Secret sin copiarlas a chat.
 
+## Revisión premium R3 y dominio inmutable (10/10/2026)
+
+**Petición explícita del usuario:** conservar permanentemente **https://traslados-web.marcelof-gx.workers.dev/** como link de clientes y actualizar la versión premium más completa **en esa ruta**, nunca publicarla en otro subdominio ni convertir GitHub Pages en producción.
+
+**Observación de captura 01:34:** aparece una selección de horario extensa con «Recogida lo antes posible» y estado Mapa en tarjeta adicional. El nuevo `GuestRoutePlanner` previo al login no modifica esa pantalla autenticada automáticamente: era el `Booking` original. Se trabajó también ese flujo de cliente identificado.
+
+**Implementado en main, versión R3:**
+- `PickupModePicker` ahora es compacto, suave, petróleo/champagne. «Ahora / En 10 min / Programar», consejo breve, WhatsApp y explicaciones opcionales. `DriverPickupEta compact` se incluye **dentro de la misma tarjeta**, eliminando duplicación de paneles enormes, sin cambiar la seguridad GPS ni confirmación del viaje.
+- `src/routes/index.tsx` imprime en el HTML `data-web-release="workers-2026-10-10-r3"` y en el footer «Web principal · Workers R3», para distinguir código desplegado de screenshots antiguas.
+- `wrangler.jsonc` conserva `"name":"traslados-web"`, `PASSKEY_PUBLIC_ORIGIN=https://traslados-web.marcelof-gx.workers.dev`, `keep_vars:true`.
+- El workflow manual ahora comprueba **ANTES** de desplegar que el nombre y origen son los exactos, que no se pierden vars/secrets y que ORS_API_KEY no se incluye en `wrangler.jsonc`; **DESPUÉS** comprueba la marca R3, el motor ORS y tarifa de referencia. No hace redirección ni crea un Worker alternativo.
+- **CI final confirmado [38024838373](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38024838373) SUCCESS en 2 jobs** (Bun 1.2.15/1.3.4, tests, TypeScript y build Workers) en commit `4d4152e1ff0b6d10a57169cf3c6ea06eda29cd6a`. No se encontraron runs de publicación manual en la lista reciente de Actions.
+
+**Estado de publicación:** aún **NO verificado/desplegado** R3. [Ejecutar el workflow existente](https://github.com/marcelofgx-ctrl/traslados-web/actions/workflows/publicar-cloudflare-manual.yml) desde la cuenta autorizada eligiendo `Run workflow → main`; requiere GitHub Secrets `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`. El conector actual no tiene la acción de `workflow_dispatch` ni acceso a secretos. No intentar sortearlo; el propietario debe iniciar esa ejecución. Después verificar en el mismo enlace del sitio que aparezca footer Workers R3, la cotización de A→B previa a login y la tarjeta de ETA compacta autenticada.
+
+
 ## Publicación controlada
 
 Workflow [`publicar-cloudflare-manual.yml`](https://github.com/marcelofgx-ctrl/traslados-web/blob/main/.github/workflows/publicar-cloudflare-manual.yml) tiene **solo** `workflow_dispatch` y requiere `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` en GitHub Secrets. Nunca asumir que existen; CI verde en `traslados-web-ci.yml` NO es despliegue. No hay herramienta de Cloudflare conectada en esta conversación para activar el despliegue remotamente.
