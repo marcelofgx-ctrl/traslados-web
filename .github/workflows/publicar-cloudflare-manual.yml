@@ -59,8 +59,8 @@ jobs:
           set -euo pipefail
           curl -fsSL --max-time 25 https://traslados-web.marcelof-gx.workers.dev/ -o /tmp/home.html
           grep -q 'Cada viaje' /tmp/home.html
-          grep -q 'data-web-release="workers-2026-10-10-r3"' /tmp/home.html || {
-            echo 'No se publica la revisión premium Workers R3 esperada'
+          grep -q 'data-app-release="traslados-2026-10-10-r4"' /tmp/home.html || {
+            echo 'No se encuentra la versión aprobada de Traslados'
             exit 1
           }
           grep -q 'Consultando Mapa Trayectos' /tmp/home.html || { echo 'Falta disponibilidad Mapa en portada Workers'; exit 1; }
