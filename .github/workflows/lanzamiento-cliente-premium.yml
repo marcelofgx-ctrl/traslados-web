@@ -80,14 +80,14 @@ jobs:
           curl -fsSI --max-time 25 "$url" -o /tmp/cliente-premium-head
           grep -qi '^content-type: application/vnd.android.package-archive' /tmp/cliente-premium-head
           grep -qi '^content-disposition: attachment' /tmp/cliente-premium-head
-          curl -fsSL --max-time 30 "$url" -o /tmp/traslados-cliente-premium-v13.apk
+          curl -fsSL --max-time 30 "$url" -o /tmp/traslados-cliente-premium-v14.apk
           curl -fsSL --max-time 25 \
             'https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/PREMIUM-SHA256SUMS.txt' \
             -o /tmp/PREMIUM-SHA256SUMS.txt
           (cd /tmp && sha256sum -c PREMIUM-SHA256SUMS.txt)
           python3 - <<'PYAPK'
           from pathlib import Path
-          apk=Path('/tmp/traslados-cliente-premium-v13.apk')
+          apk=Path('/tmp/traslados-cliente-premium-v14.apk')
           assert apk.stat().st_size>10000, 'APK inexistente o truncada'
           assert apk.read_bytes()[:2]==b'PK', 'El Worker sirvió una página y no APK'
           print('WORKERS OK: APK Cliente Premium descargable, íntegra y con marca oficial')
