@@ -6,12 +6,30 @@ import { ShareQr } from "@/components/ShareQr";
 
 const WEB="https://traslados-web.marcelof-gx.workers.dev";
 const PHONE="+59897228175";
+const CLIENTE_APK="/api/public/cliente-apk";
 type InstallPrompt=Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:"accepted"|"dismissed"}>};
 
 export function CustomerShareTools() {
   const [showInstall,setShowInstall]=useState(false);
   const [showQR,setShowQR]=useState(false);
   const [installation,setInstallation]=useState<InstallPrompt|null>(null);
+  const [apkAvailable,setApkAvailable]=useState(false);
+  const [installed,setInstalled]=useState(false);
+  const android=typeof navigator!=="undefined"&&/Android/i.test(navigator.userAgent);
+  useEffect(()=>{
+    if(!android)return;
+    const controller=new AbortController();
+    void fetch(CLIENTE_APK,{method:"HEAD",signal:controller.signal}).then(res=>{
+      const mime=res.headers.get("Content-Type")??"";
+      setApkAvailable(res.ok&&mime.includes("application/vnd.android.package-archive"));
+    }).catch(()=>setApkAvailable(false));
+    return()=>controller.abort();
+  },[android]);
+  useEffect(()=>{
+    const installedHandler=()=>{setInstalled(true);setInstallation(null);};
+    window.addEventListener("appinstalled",installedHandler);
+    return()=>window.removeEventListener("appinstalled",installedHandler);
+  },[]);
   useEffect(()=>{
     const handler=(ev:Event)=>{ev.preventDefault();setInstallation(ev as InstallPrompt);};
     window.addEventListener("beforeinstallprompt",handler);
@@ -56,12 +74,32 @@ export function CustomerShareTools() {
     window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   async function install(){
-    if(!installation){setShowInstall(v=>!v);return;}
+    if(installed){toast.success("Traslados ya está instalado");return;}
+    if(!installation){
+      if(android&&apkAvailable){
+        // Native APK only when Chrome did NOT offer beforeinstallprompt and
+        // Workers confirmed the signed installer is available with HEAD.
+        const a=document.createElement("a");
+        a.href=CLIENTE_APK;
+        a.download="Traslados_Cliente_v11.5_R12_RELEASE.apk";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return;
+      }
+      setShowInstall(v=>!v);return;
+    }
+    const pending=installation;
+    setInstallation(null);
     try {
-      await installation.prompt();
-      const decision=await installation.userChoice;
-      if(decision.outcome==="accepted")toast.success("Instalación solicitada");
-      setInstallation(null);
+      await pending.prompt();
+      const decision=await pending.userChoice;
+      if(decision.outcome==="accepted"){
+        setInstalled(true);
+        toast.success("Instalación solicitada");
+      }else{
+        setShowInstall(true);
+      }
     }catch {setShowInstall(true);}
   }
   const shareWhatsApp="https://wa.me/?text="+encodeURIComponent("Te comparto Traslados, para reservar viajes programados con atención personal: "+WEB);
@@ -96,12 +134,16 @@ export function CustomerShareTools() {
     </div>
     <button type="button" onClick={()=>void install()} aria-expanded={showInstall}
       className="mt-4 flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-3 text-left text-sm text-[#d9e5df] transition hover:border-primary/40">
-      <span className="flex items-center gap-2"><Smartphone className="size-4 text-primary"/> {installation?"Instalar Traslados en Android":"Añadir Traslados a inicio"}</span>
+      <span className="flex items-center gap-2"><Smartphone className="size-4 text-primary"/> {installed?"Traslados instalado":installation?"Instalar Traslados en Android":android&&apkAvailable?"Descargar Traslados Cliente Android":"Añadir Traslados a inicio"}</span>
       {showInstall?<X className="size-4 text-primary"/>:<LinkIcon className="size-4 text-primary"/>}
     </button>
+    {android&&apkAvailable&&!installation&&!installed&&<div className="mt-2 rounded-xl border border-primary/25 bg-primary/5 p-4 text-xs leading-6 text-[#d9e2d7]">
+      Chrome no ofreció la instalación automática. Podés descargar nuestra aplicación nativa Cliente 11.5-R12, firmada para Android, sin salir de Traslados. Su interfaz y funciones pueden diferir de esta web. Android puede solicitar permiso para instalarla.
+      <button type="button" onClick={()=>setShowInstall(v=>!v)} className="mt-2 block text-xs font-semibold text-primary underline">Prefiero instalar la versión web</button>
+    </div>}
     {showInstall&&<div className="mt-2 rounded-xl bg-black/15 p-4 text-sm leading-6 text-[#cbdad5]">
-      En Chrome para Android, abrí el menú del navegador (⋮) y buscá <strong>Agregar a pantalla principal</strong> o <strong>Instalar app</strong>. Si el navegador ofrece instalar, confirmá.
-      <p className="mt-2 text-xs text-muted-foreground">El acceso directo abre Traslados; las reservas y la sesión requieren conexión. La disponibilidad de instalación depende del navegador.</p>
+      En Chrome para Android, abrí ⋮ → <strong>Instalar y crear acceso directo</strong> → <strong>Instalar</strong>. Si solo figura «Crear acceso directo», se agregará un ícono que abre la página.
+      <p className="mt-2 text-xs text-muted-foreground">La instalación automática depende de Chrome; el acceso directo y la aplicación nativa no son idénticos.</p>
     </div>}
   </section>;
 }
