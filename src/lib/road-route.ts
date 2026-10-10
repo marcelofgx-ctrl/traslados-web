@@ -4,6 +4,8 @@ export type RoadRoute={
   available:true; distanceKm:number; durationMin:number;
   source:"openrouteservice"; geometry: Array<[number,number]>;
   calculatedAt:string;
+  /** Estimación pública no vinculante; solo si se calculó ruta real por carretera. */
+  referenceFareUyu?:number;
 };
 export type RoadUnavailable={available:false;reason:"not_configured"|"temporarily_unavailable"|"no_route"};
 export function validUruguayPoint(x:unknown):x is RoadPoint{
@@ -37,4 +39,15 @@ export function parseOrsGeojson(data:unknown):Omit<RoadRoute,"calculatedAt">|nul
   const coords=geometry.map(p=>[p[1],p[0]] as [number,number]);
   if(!coords.every(p=>validUruguayPoint({lat:p[0],lng:p[1]})))return null;
   return {available:true,source:"openrouteservice",distanceKm:Math.round(Number(dist)/100)/10,durationMin:Math.ceil(Number(dur)/60),geometry:coords};
+}
+
+/** Tarifa interna orientativa, parametrizable en el Worker con FARE_REFERENCE_UYU_PER_KM.
+ * Por defecto 40 UYU/km: 8 km = 320 UYU. No incluye peajes, esperas,
+ * nocturnidad ni presupuesto final; jamás sustituye la cotización del conductor.
+ */
+export function referenceFareUyu(kilometres:number,configuredRate?:string|null):number|null {
+  if(!Number.isFinite(kilometres)||kilometres<=0)return null;
+  const rate=configuredRate==null||configuredRate.trim()==="" ? 40 : Number(configuredRate);
+  if(!Number.isFinite(rate)||rate<=0||rate>1000)return null;
+  return Math.max(10,Math.round(kilometres*rate/10)*10);
 }
