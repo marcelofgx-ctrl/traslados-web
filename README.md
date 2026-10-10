@@ -1,5 +1,8 @@
 # Traslados Web
 
+> **CRITERIO DEFINITIVO DE PRODUCTO — 10/10/2026:** el usuario eligió **https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/** como la única web pública de pasajeros con diseño aprobado («Tu viaje, bien organizado»). Este repositorio Cloudflare Workers es de apoyo técnico para `/api/public/route-estimate` y otros servicios; el antiguo frontend React es legado, no el producto que se debe mostrar/instalar/promocionar. Su portada se deriva al enlace Pages; preservar Worker, secretos y APIs. La APK Cliente Premium v13 apunta a Pages, no a Workers. Este criterio prevalece sobre los contenidos históricos siguientes.
+
+
 > **CONTEXTO MAESTRO COMPARTIDO — LEER ANTES DE RETOMAR:** https://github.com/marcelofgx-ctrl/traslados-android/blob/main/docs/CONTEXTO_MAESTRO_PROYECTOS.md
 >
 > Documento vivo de coordinación de **Mapa Trayectos / Conductor integrado / Cliente APK / GitHub Pages-PWA / esta web Cloudflare / Supabase**. Incluye enlaces correctos, estado de compilación y publicación, pendientes, privacidad GPS y convención de actualización. La información histórica de este README puede estar desactualizada; verificar siempre `main`, Actions y producción. **Actualizar el contexto maestro al terminar cada intervención importante**, especialmente si afecta a ambos repositorios.
