@@ -35,7 +35,7 @@ jobs:
       - name: Instalar dependencias
         run: bun install --frozen-lockfile
       - name: Pruebas seguridad origen WebAuthn
-        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/pickup-eta-policy.test.ts tests/workers-canonical.test.ts tests/guest-booking.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/pickup-eta-policy.test.ts tests/workers-canonical.test.ts tests/location-permission.test.ts tests/guest-booking.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
       - name: Compilar web sin Lovable
         run: bun run build
       - name: Comprobar TypeScript estrictamente
