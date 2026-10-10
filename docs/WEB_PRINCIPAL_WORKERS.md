@@ -2,6 +2,15 @@
 
 **Decisión expresa del usuario (10/10/2026):** la web completa y definitiva para pasajeros debe estar en **https://traslados-web.marcelof-gx.workers.dev/**. GitHub Pages **NO** es la dirección pública principal ni la fuente de verdad de la experiencia final. Esta decisión prevalece sobre recomendaciones antiguas de promover la PWA Pages a producción.
 
+## Auditoría de reanudación (10/10/2026)
+
+- **Código R3:** commit `4d4152e1`, [CI 38024838373](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38024838373) SUCCESS en dos jobs. Posterior commit `26dea1da` solo documenta y [CI 38024918603](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38024918603) SUCCESS en ambos jobs. No se identificó un error de compilación activo en esos cortes.
+- **Publicación:** consulta real a GitHub de `event=workflow_dispatch` dio **0 ejecuciones** en el historial de este repositorio. **NO hay evidencia de que el workflow manual publicara Workers R3**. La URL Cloudflare no fue accesible desde las herramientas de esta auditoría: tampoco se pudo capturar pantalla real. Estado real del HTML en producción **sin verificar**.
+- **Seguridad/configuración en main:** Worker `traslados-web`, `PASSKEY_PUBLIC_ORIGIN=https://traslados-web.marcelof-gx.workers.dev`, `keep_vars:true` y sin `ORS_API_KEY` versionada. Mantener la URL y secretos; no disparar deploy con un trigger nuevo ni usar GitHub Pages como reemplazo.
+- **Integraciones:** Supabase `zetaudvvutlouiqxopvg` responde con estado `ACTIVE_HEALTHY`; existen tablas de reservas, Mapa y presencia con RLS, y función Edge `pickup-eta` activa. No se comprobaron heartbeat fresco ni operaciones de reserva end-to-end. Código R3 inspeccionado: invitado consulta recorrido A/B con paradas y precio si existe ruta real; estado público sin GPS; ETA conductor→origen protegida por sesión. `Ahora` y `En 10 min` siguen como **consulta WhatsApp**, no creación automática confirmada.
+- **Desbloqueo:** el titular debe ejecutar [Publicar Traslados Web en Cloudflare (manual)](https://github.com/marcelofgx-ctrl/traslados-web/actions/workflows/publicar-cloudflare-manual.yml) → **Run workflow → main**; el conector GitHub utilizado carece de `workflow_dispatch`. Revisar conclusión, marcador HTML `workers-2026-10-10-r3`, ORS y tarifa; luego QA móvil y una reserva real autorizada. No modificar la web estética aprobada antes de esa verificación.
+- **Coordinación:** esta revisión se registró también en el [contexto maestro](https://github.com/marcelofgx-ctrl/traslados-android/blob/main/docs/CONTEXTO_MAESTRO_PROYECTOS.md) (commit `787da926`). Ningún código visual, APK, reserva ni secreto cambió por esta auditoría.
+
 ## Arquitectura acordada
 
 - **Workers, repositorio `marcelofgx-ctrl/traslados-web`:** portada cálida premium, reserva, origen y destino, paradas intermedias, búsqueda Uruguay, distancias y minutos A→B, tarifa orientativa, modos ahora/10 minutos/programado, estado del conductor obtenido de Mapa, registro/acceso, reservas e historial y propuesta final del conductor.
