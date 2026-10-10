@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDownRight, ArrowRight, CalendarCheck2, CalendarDays, CarFront, Check, ChevronRight, Clock3, Compass, Fingerprint, Headphones, MapPin, MessageCircle, Navigation2, Plane, Route as RouteIcon, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
 import { CustomerShareTools } from "@/components/CustomerShareTools";
+import { ExpansionChannels } from "@/components/ExpansionChannels";
 import { DriverLiveStatus } from "@/components/DriverLiveStatus";
 const WHATSAPP = "https://wa.me/59897228175?text="+encodeURIComponent("Hola, quisiera consultar por un traslado programado.");
 type Props={onBook:()=>void;onHistory:()=>void};
@@ -111,6 +112,7 @@ export function PremiumHome({onBook,onHistory}:Props){
         </div>
       </div>
     </section>
+    <ExpansionChannels onBook={onBook}/>
     <section className="mx-auto max-w-6xl px-4 py-12 sm:px-8 sm:py-20" aria-labelledby="service-personal">
       <div className="premium-glass relative overflow-hidden rounded-[1.7rem] border border-primary/25 p-6 sm:p-10">
         <div className="absolute -right-12 top-0 size-52 rounded-full bg-primary/10 blur-3xl"/>
