@@ -92,8 +92,8 @@ export function BookingQuickSummary({origin,destination,stops,onEditOrigin,onEdi
       {route&&<details className="basis-full text-[10px] text-[#bbcdc4]">
         <summary className="cursor-pointer py-1 text-[#dbca9e]">Origen del cálculo</summary>
         {route.source==="supabase_route_cache"
-          ?"Distancia ya verificada por el motor interno (OSRM) y guardada en Supabase; sin tráfico en vivo. Datos © OpenStreetMap contributors."
-          :"Estimación openrouteservice / HeiGIT y datos © OpenStreetMap contributors; sin tráfico en vivo."}
+          ?"Ruta previamente calculada por carretera. Sin tráfico en vivo. Datos cartográficos © OpenStreetMap contributors."
+          :"Estimación por carretera. Sin tráfico en vivo. Datos cartográficos © OpenStreetMap contributors."}
       </details>}
     </div>
     {date&&time&&<div className="mx-4 mb-3 flex items-center gap-1.5 text-[11px] text-[#d5dfd6] sm:mx-5">
