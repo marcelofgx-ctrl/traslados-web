@@ -1,3 +1,6 @@
+
+**Corte confirmado 10/10/2026 20:05 UYT:** **Web/PWA oficial GitHub Pages v24** (`https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/`), **APK Android Cliente Premium v14** (versionCode 202, misma firma), archivo `web-pasajero/downloads/traslados-cliente-premium-v14.apk`, también servido por el proxy Worker `/api/public/cliente-apk`. [Deploy Cloudflare 38093783630](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38093783630) SUCCESS; motor de rutas HTTP 200, km/min/tarifa y checksum APK verificados. PWA oculta fecha/hora en modo «Ahora/10 min» sin crear reservas urgentes; permite elegir PWA o APK aunque Chrome ofrezca ambas. Worker NO es la interfaz de cliente preferida; se mantienen APIs en Worker y backend Supabase intactos. 
+
 <!-- LOVABLE:BEGIN -->
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
