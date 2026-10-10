@@ -7,7 +7,7 @@ const ui=readFileSync("src/components/CustomerShareTools.tsx","utf8");
 describe("Signed Cliente APK fallback for Workers PWA",()=>{
   it("serves the verified native Cliente under our own site, not a redirect",()=>{
     expect(route).toContain('createFileRoute("/api/public/cliente-apk")');
-    expect(route).toContain("traslados-cliente-v11.5-r12.apk");
+    expect(route).toContain("traslados-cliente-premium-v12.apk");
     expect(route).toContain('GET:async()=>transferClienteApk("GET")');
     expect(route).toContain('HEAD:async()=>transferClienteApk("HEAD")');
     expect(route).toContain('application/vnd.android.package-archive');
