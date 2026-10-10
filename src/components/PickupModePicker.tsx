@@ -35,8 +35,8 @@ export function PickupModePicker({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[#f1e3c9]">Recogida {mode==="ahora"?"lo antes posible":"solicitada para dentro de 10 minutos"}</p>
           <p className="mt-2 text-xs leading-6 text-[#c1d0ca]">
-            Todavía no tenemos sincronizada la ubicación GPS en vivo ni la condición libre/ocupado de Mapa.
-            No podemos calcular con seguridad cuántos kilómetros o minutos faltan para recogerte.
+            Consultamos la jornada, GPS reciente y agenda del conductor para estimar tu recogida.
+            Solo mostramos kilómetros y minutos cuando existen datos verificados y autorización activa.
           </p>
           {!hasOrigin||!hasDestination?<p className="mt-2 text-xs text-[#d1c0a0]">Seleccioná origen y destino para ver tu recorrido.</p>:null}
           <a href={wa} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e0bc77]/45 bg-[#e0bc77]/10 px-3 text-sm font-semibold text-[#f1d69d] hover:bg-[#e0bc77]/20">
