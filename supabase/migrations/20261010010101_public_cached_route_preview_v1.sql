@@ -17,10 +17,10 @@ declare
   km_total numeric := 0;
   minutes_total integer := 0;
   oldest_at timestamptz := now();
-  from_lat numeric(10,5);
-  from_lng numeric(10,5);
-  to_lat numeric(10,5);
-  to_lng numeric(10,5);
+  v_from_lat numeric(10,5);
+  v_from_lng numeric(10,5);
+  v_to_lat numeric(10,5);
+  v_to_lng numeric(10,5);
 begin
   if p_points is null or jsonb_typeof(p_points) <> 'array' then
     return jsonb_build_object('available',false,'reason','invalid_points');
@@ -42,18 +42,18 @@ begin
   for i in 0..n-2 loop
     a:=p_points->i;
     b:=p_points->(i+1);
-    from_lat:=round((a->>'lat')::numeric,5);
-    from_lng:=round((a->>'lng')::numeric,5);
-    to_lat:=round((b->>'lat')::numeric,5);
-    to_lng:=round((b->>'lng')::numeric,5);
-    if from_lat=to_lat and from_lng=to_lng then
+    v_from_lat:=round((a->>'lat')::numeric,5);
+    v_from_lng:=round((a->>'lng')::numeric,5);
+    v_to_lat:=round((b->>'lat')::numeric,5);
+    v_to_lng:=round((b->>'lng')::numeric,5);
+    if v_from_lat=v_to_lat and v_from_lng=to_lng then
       continue;
     end if;
     -- Non-ROAD calculations (including haversine estimates) are NOT billable route data.
     select c.distance_km,c.duration_min,c.updated_at into row_found
       from public.route_reposition_cache c
-      where c.from_lat=from_lat and c.from_lng=from_lng
-        and c.to_lat=to_lat and c.to_lng=to_lng
+      where c.from_lat=v_from_lat and c.from_lng=v_from_lng
+        and c.to_lat=v_to_lat and c.to_lng=v_to_lng
         and c.method='ROAD' and c.distance_km > 0 and c.duration_min>=0
         and c.updated_at > now()-interval '7 days'
       limit 1;
