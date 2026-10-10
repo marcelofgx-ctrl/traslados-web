@@ -83,8 +83,10 @@ Deno.serve(async(req)=>{
       if(reason==="rate_limited")return response({available:false,reason:"rate_limited"},429,origin);
       return response({available:false,reason:reason==="schedule_conflict"?"occupied":"not_available"},200,origin);
     }
-    const driverLat=guest?context["coarseDriverLat"]:context["driverLat"];
-    const driverLng=guest?context["coarseDriverLng"]:context["driverLng"];
+    // Service-role SQL returns accurate coordinates ONLY to this trusted Edge.
+    // Public response remains coarsened; browser never sees the GPS point.
+    const driverLat=guest?context["serviceDriverLat"]:context["driverLat"];
+    const driverLng=guest?context["serviceDriverLng"]:context["driverLng"];
     if(typeof driverLat!=="number"||typeof driverLng!=="number"
        ||!Number.isFinite(driverLat)||!Number.isFinite(driverLng))
        return response({available:false,reason:"temporarily_unavailable"},503,origin);
