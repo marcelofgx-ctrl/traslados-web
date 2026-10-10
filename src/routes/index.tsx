@@ -346,7 +346,7 @@ function TrasladosWeb() {
     if(typeof window!=="undefined")window.scrollTo({top:0,behavior:"smooth"});
   }
   const onAccess=()=>setView(wanted);
-  return <main data-web-release="workers-2026-10-10-r3" className="min-h-screen overflow-x-hidden">
+  return <main data-app-release="traslados-2026-10-10-r4" className="min-h-screen overflow-x-hidden">
     <Header go={go} name={signed?session?.customer.full_name:undefined}/>
     {view==="inicio"&&<Home go={go}/>}
     {view==="registro" && <PasskeyAccess mode="registro" onDone={()=>setView(wanted)} onBack={()=>setView("acceso")}/>}
@@ -362,9 +362,9 @@ function TrasladosWeb() {
     {view==="enviada"&&<section className="mx-auto max-w-lg px-5 py-20 text-center"><CheckCircle2 className="mx-auto size-16 text-success"/><h1 className="mt-5 font-display text-3xl">Solicitud recibida</h1><p className="mt-3 text-sm text-muted-foreground">Queda pendiente de confirmación del conductor.</p><div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-5"><p className="text-xs uppercase tracking-[.2em] text-primary">Código de reserva</p><p className="mt-2 font-display text-3xl font-semibold">{sent}</p></div><Button className="mt-7 h-12 w-full" onClick={()=>go("historial")}>Ver mis traslados</Button></section>}
     <footer className="border-t border-border/60 bg-[#0d2026]">
       <div className="mx-auto grid max-w-6xl gap-7 px-5 py-10 sm:grid-cols-3 sm:px-8">
-        <div><p className="font-display text-lg tracking-[.14em] text-[#eee0cb]">TRASLADOS</p><p className="mt-2 text-xs leading-6 text-muted-foreground">Tu viaje, bien organizado. Atención personal en Uruguay.</p><p className="mt-2 text-[10px] text-[#78978f]">Web principal · Workers R3</p></div>
+        <div><p className="font-display text-lg tracking-[.14em] text-[#eee0cb]">TRASLADOS</p><p className="mt-2 text-xs leading-6 text-muted-foreground">Tu viaje, bien organizado. Atención personal en Uruguay.</p><p className="mt-2 text-[10px] text-[#78978f]">Atención personal · Uruguay</p></div>
         <div><p className="text-sm font-semibold">Contacto</p><a href={"tel:"+CONTACT} className="mt-3 flex items-center gap-2 text-sm text-primary"><Phone className="size-4"/> +598 97 228 175</a><a className="mt-2 block text-sm text-muted-foreground" href={WHATSAPP} target="_blank" rel="noreferrer">WhatsApp</a></div>
-        <div><p className="text-sm font-semibold">Accesos</p><button type="button" onClick={()=>go("historial")} className="mt-3 block text-sm text-muted-foreground">Mis viajes</button><button type="button" onClick={()=>go("reserva")} className="mt-2 block text-sm text-muted-foreground">Reservar</button><Link to="/conductor" className="mt-3 inline-block text-xs text-muted-foreground">Conductor (sistema anterior)</Link></div>
+        <div><p className="text-sm font-semibold">Accesos</p><button type="button" onClick={()=>go("historial")} className="mt-3 block text-sm text-muted-foreground">Mis viajes</button><button type="button" onClick={()=>go("reserva")} className="mt-2 block text-sm text-muted-foreground">Reservar</button></div>
       </div>
       <p className="border-t border-white/5 py-4 text-center text-[11px] text-[#809490]">© 2026 Traslados · Uruguay · Servicio privado</p>
     </footer>
