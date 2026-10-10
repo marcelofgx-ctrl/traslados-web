@@ -46,7 +46,7 @@ begin
     v_from_lng:=round((a->>'lng')::numeric,5);
     v_to_lat:=round((b->>'lat')::numeric,5);
     v_to_lng:=round((b->>'lng')::numeric,5);
-    if v_from_lat=v_to_lat and v_from_lng=to_lng then
+    if v_from_lat=v_to_lat and v_from_lng=v_to_lng then
       continue;
     end if;
     -- Non-ROAD calculations (including haversine estimates) are NOT billable route data.
