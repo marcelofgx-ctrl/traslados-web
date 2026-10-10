@@ -60,3 +60,12 @@ Antes de publicar ejecuta pruebas de agenda, cliente, rutas, seguridad y TypeScr
 5. Tras la validación, difundir exclusivamente la URL Workers como pública; dejar Pages como entorno de prueba o redirigir con plan para PWA instalada.
 
 **Contexto maestro transversal:** https://github.com/marcelofgx-ctrl/traslados-android/blob/main/docs/CONTEXTO_MAESTRO_PROYECTOS.md
+
+## GPS asistido en el formulario (10/10/2026)
+
+**Motivo:** al pedir la ubicación en Samsung Android la PWA auxiliar mostró el bloqueo de permisos por aplicaciones superpuestas. El cliente no debe quedar atrapado en un bucle «Reintentar» ni recibir un mensaje genérico.
+
+- **IMPLEMENTADO EN CÓDIGO** en `src/components/UyLocationPicker.tsx`: error de permiso (1), GPS no disponible (2), timeout (3), tarjeta de ayuda visual petróleo/champagne con instrucciones para Chrome/Android, botones **Volver a intentar** y **Escribir dirección**. El navegador solicita el permiso únicamente tras pulsación; ningún frontend puede habilitarlo automáticamente ni ignorar la protección anti-superposición. Se corrigió el estado de carga cuando llegan coordenadas fuera de Uruguay.
+- **CI / seguridad:** `tests/location-permission.test.ts` se ejecuta tanto en `traslados-web-ci.yml` como en `publicar-cloudflare-manual.yml`; CI [38026179460](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38026179460) **SUCCESS (2 jobs)** para esa primera revisión. Revisar CI del último commit posterior antes de desplegar.
+- **PARIDAD:** la PWA auxiliar `traslados-android/web-pasajero/` recibió ayuda equivalente y cache v14; CI + Pages SUCCESS. No confundir esa publicación con la del Worker.
+- **PUBLICACIÓN WORKERS NO CONFIRMADA**: preservar URL `https://traslados-web.marcelof-gx.workers.dev/`; el conector GitHub actual carece de `workflow_dispatch`. Debe ejecutarse el [workflow manual existente](https://github.com/marcelofgx-ctrl/traslados-web/actions/workflows/publicar-cloudflare-manual.yml) desde GitHub, sin alterar credenciales ni `keep_vars`. Verificar luego el navegador Samsung; CI no prueba concesión real de GPS.
