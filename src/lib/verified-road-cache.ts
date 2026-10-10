@@ -9,14 +9,14 @@ import type { RoadPoint, RoadRoute } from "@/lib/road-route";
 export function decodeVerifiedCachedRoute(raw:unknown):RoadRoute|null {
   if(!raw||typeof raw!=="object")return null;
   const v=raw as Record<string,unknown>;
-  if(v.available!==true||v.source!=="supabase_route_cache")return null;
-  const km=v.distanceKm, minutes=v.durationMin, fare=v.referenceFareUyu;
+  if(v["available"]!==true||v["source"]!=="supabase_route_cache")return null;
+  const km=v["distanceKm"], minutes=v["durationMin"], fare=v["referenceFareUyu"];
   if(typeof km!=="number"||!Number.isFinite(km)||km<=0||km>2500
     ||typeof minutes!=="number"||!Number.isFinite(minutes)||minutes<0||minutes>20000
-    ||typeof v.calculatedAt!=="string"||!Number.isFinite(Date.parse(v.calculatedAt)))return null;
+    ||typeof v["calculatedAt"]!=="string"||!Number.isFinite(Date.parse(v["calculatedAt"])))return null;
   return {
     available:true,source:"supabase_route_cache",distanceKm:km,durationMin:minutes,
-    geometry:[],calculatedAt:v.calculatedAt,
+    geometry:[],calculatedAt:v["calculatedAt"],
     ...(typeof fare==="number"&&Number.isFinite(fare)&&fare>0?{referenceFareUyu:fare}:{})
   };
 }
@@ -50,7 +50,7 @@ export async function fetchPublicReferenceFare(kilometres:number,signal?:AbortSi
     const v:unknown=await response.json();
     if(!v||typeof v!=="object")return null;
     const data=v as Record<string,unknown>;
-    const amount=data.referenceFareUyu;
-    return data.available===true&&typeof amount==="number"&&Number.isFinite(amount)&&amount>0?amount:null;
+    const amount=data["referenceFareUyu"];
+    return data["available"]===true&&typeof amount==="number"&&Number.isFinite(amount)&&amount>0?amount:null;
   }catch{return null;}
 }
