@@ -61,8 +61,8 @@ export function RoutePreview({origin,destination,stops,compact=false}:Props){
           </div>}
           <div className="rounded-xl border border-primary/20 bg-primary/[.06] p-3">
             <p className="flex items-center gap-2 text-xs text-[#e6d5b3]"><ShieldCheck className="size-3.5 text-primary"/> Presupuesto personalizado</p>
-            <p className="mt-1 text-sm font-semibold text-[#f1e2c5]">A confirmar por el conductor</p>
-            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">Recibirás la propuesta en Mis traslados; podrás aceptarla o rechazarla.</p>
+            <p className="mt-1 font-display text-xl font-semibold text-[#f1e2c5]">{Number.isFinite(result?.referenceFareUyu)&&Number(result?.referenceFareUyu)>0 ? "$ "+Number(result?.referenceFareUyu).toLocaleString("es-UY",{maximumFractionDigits:0})+" aprox." : "Importe a confirmar"}</p>
+            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">Referencia basada en km por carretera, sin peajes ni extras. El importe definitivo lo prepara el conductor en Mapa y podés aceptarlo o rechazarlo desde Mis traslados.</p>
           </div>
         </div>
         {mapsUrl&&<a href={mapsUrl} target="_blank" rel="noopener noreferrer"
