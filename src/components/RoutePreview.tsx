@@ -53,7 +53,7 @@ export function RoutePreview({origin,destination,stops,compact=false}:Props){
             <p className="flex items-center gap-2 text-xs text-[#e4d7bd]"><CarFront className="size-3.5 text-primary"/> Distancia por carretera</p>
             <p className="mt-1 font-display text-2xl tabular-nums text-[#f5e9d8]">{result.distanceKm.toLocaleString("es-UY",{maximumFractionDigits:1})} km</p>
             <p className="mt-1 inline-flex items-center gap-1 text-sm text-[#d5e2d9]"><Clock3 className="size-3.5 text-primary"/>{result.durationMin} min estimados</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">Ruta calculada por openrouteservice / OpenStreetMap. No incluye tráfico en vivo.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">© openrouteservice.org by HeiGIT · Map data © OpenStreetMap contributors. Sin tráfico en vivo.</p>
           </div>:<div className="rounded-xl border border-white/10 bg-white/[.035] p-3">
             <p className="flex items-center gap-2 text-xs text-[#baccc7]">{working?<Loader2 className="size-3.5 animate-spin text-primary"/>:<Compass className="size-3.5 text-primary"/>} {working?"Calculando ruta…":"Distancia por carretera pendiente"}</p>
             {direct!=null&&<p className="mt-1 text-sm text-[#e3e9e4]">Separación en línea recta: {direct.toLocaleString("es-UY",{maximumFractionDigits:1})} km</p>}
