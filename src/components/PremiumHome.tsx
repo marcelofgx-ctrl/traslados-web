@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDownRight, ArrowRight, CalendarCheck2, CalendarDays, CarFront, Check, ChevronRight, Clock3, Compass, Fingerprint, Headphones, MapPin, MessageCircle, Navigation2, Plane, Route as RouteIcon, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
 import { CustomerShareTools } from "@/components/CustomerShareTools";
+import { DriverLiveStatus } from "@/components/DriverLiveStatus";
 const WHATSAPP = "https://wa.me/59897228175?text="+encodeURIComponent("Hola, quisiera consultar por un traslado programado.");
 type Props={onBook:()=>void;onHistory:()=>void};
 const serviceCards=[
@@ -39,6 +40,7 @@ export function PremiumHome({onBook,onHistory}:Props){
               <CalendarCheck2 className="size-4 text-primary"/> Mis traslados
             </button>
           </div>
+          <DriverLiveStatus/>
           <Link to="/distancia" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-primary/35 bg-primary/[.07] px-4 text-sm font-semibold text-[#f1d49f] transition hover:border-primary/60 hover:bg-primary/15">
             <RouteIcon className="size-4"/> Calcular kilómetros de un trayecto <ArrowRight className="size-4"/>
           </Link>
