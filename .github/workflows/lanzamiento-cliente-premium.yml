@@ -66,7 +66,7 @@ jobs:
           # de pasajeros (misma interfaz en PWA y Cliente v13) es GitHub Pages.
           curl -fsSL --max-time 25 'https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/' -o /tmp/pasajero.html
           grep -q 'Tu viaje' /tmp/pasajero.html
-          grep -q 'app.js?v=21' /tmp/pasajero.html
+          grep -q 'app.js?v=24' /tmp/pasajero.html
           curl -fsSL --max-time 25 https://traslados-web.marcelof-gx.workers.dev/ -o /tmp/home.html
           grep -q 'Cada viaje' /tmp/home.html
           grep -q 'data-app-release="traslados-2026-10-10-r4"' /tmp/home.html || {
