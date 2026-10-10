@@ -1,0 +1,106 @@
+name: Lanzamiento Cliente Premium y expansion (Workers)
+
+# Lanzamiento único activado solamente al crear este workflow (otros commits no despliegan).
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lanzamiento-cliente-premium.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build, pruebas y publicación manual
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout código real
+        uses: actions/checkout@v4
+      - name: Instalar Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.4'
+      - name: Instalar dependencias congeladas
+        run: bun install --frozen-lockfile
+      - name: Probar integridad del sistema de reservas, Mapa y rutas
+        run: bun test tests/passkey-origin.test.ts tests/customer-history.test.ts tests/geo-route.test.ts tests/verified-road-cache.test.ts tests/pickup-eta-policy.test.ts tests/workers-canonical.test.ts tests/public-branding.test.ts tests/expansion.test.ts tests/cliente-apk-install.test.ts tests/location-permission.test.ts tests/guest-booking.test.ts tests/uy-pois.test.ts tests/uy-osm-index.test.ts
+      - name: Verificar TypeScript
+        run: bunx tsc --noEmit
+      - name: Construir Worker y web
+        run: bun run build
+      - name: Verificar credenciales de Cloudflare sin imprimirlas
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Falta el secreto CLOUDFLARE_API_TOKEN en GitHub'; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Falta el secreto CLOUDFLARE_ACCOUNT_ID en GitHub'; exit 2; }
+      - name: Verificar que la dirección pública no cambia
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          with open('wrangler.jsonc',encoding='utf8') as f: c=json.load(f)
+          expected='https://traslados-web.marcelof-gx.workers.dev'
+          assert c['name']=='traslados-web','No cambiar el nombre del Worker'
+          assert c['vars']['PASSKEY_PUBLIC_ORIGIN']==expected,'No cambiar la URL canónica'
+          assert c.get('keep_vars') is True,'Preservar secretos de producción'
+          assert 'ORS_API_KEY' not in c.get('vars',{}),'No versionar claves privadas'
+          print('PASS: desplegar exclusivamente sobre el mismo dominio Workers')
+          PY
+      - name: Publicar Worker canónico tras CI y aprobación de lanzamiento
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+      - name: Verificar publicación (sin alterar reservas)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 25 https://traslados-web.marcelof-gx.workers.dev/ -o /tmp/home.html
+          grep -q 'Cada viaje' /tmp/home.html
+          grep -q 'data-app-release="traslados-2026-10-10-r4"' /tmp/home.html || {
+            echo 'No se encuentra la versión aprobada de Traslados'
+            exit 1
+          }
+          grep -q 'Consultando Mapa Trayectos' /tmp/home.html || { echo 'Falta disponibilidad Mapa en portada Workers'; exit 1; }
+          grep -q 'Más posibilidades.' /tmp/home.html || { echo 'No se publicó la sección de expansión para empresas y alojamientos'; exit 1; }
+          # El pasajero no debe ver la URL auxiliar al descargar Cliente Premium.
+          url='https://traslados-web.marcelof-gx.workers.dev/api/public/cliente-apk'
+          curl -fsSI --max-time 25 "$url" -o /tmp/cliente-premium-head
+          grep -qi '^content-type: application/vnd.android.package-archive' /tmp/cliente-premium-head
+          grep -qi '^content-disposition: attachment' /tmp/cliente-premium-head
+          curl -fsSL --max-time 30 "$url" -o /tmp/traslados-cliente-premium-v12.apk
+          curl -fsSL --max-time 25 \
+            'https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/PREMIUM-SHA256SUMS.txt' \
+            -o /tmp/PREMIUM-SHA256SUMS.txt
+          (cd /tmp && sha256sum -c PREMIUM-SHA256SUMS.txt)
+          python3 - <<'PYAPK'
+          from pathlib import Path
+          apk=Path('/tmp/traslados-cliente-premium-v12.apk')
+          assert apk.stat().st_size>10000, 'APK inexistente o truncada'
+          assert apk.read_bytes()[:2]==b'PK', 'El Worker sirvió una página y no APK'
+          print('WORKERS OK: APK Cliente Premium descargable, íntegra y con marca oficial')
+          PYAPK
+
+          code="$(curl -s -o /tmp/ruta.json -w '%{http_code}'             'https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9')"
+          echo "Ruta ORS producción HTTP: $code"
+          if [ "$code" != "200" ]; then
+            cat /tmp/ruta.json
+            echo "Motor ORS no quedó disponible en producción; revisar clave del Worker."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          with open('/tmp/ruta.json') as f: data=json.load(f)
+          assert data.get('available') is True,data
+          assert data.get('source') in ('openrouteservice','supabase_route_cache'),data
+          assert isinstance(data.get('distanceKm'),(int,float)) and data['distanceKm']>0
+          assert isinstance(data.get('durationMin'),(int,float)) and data['durationMin']>=0
+          assert isinstance(data.get('referenceFareUyu'),(int,float)) and data['referenceFareUyu']>0
+          print("Ruta operativa, km, minutos y precio orientativo verificados en Workers")
+          PY
