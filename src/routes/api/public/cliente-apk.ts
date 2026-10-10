@@ -2,15 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Descarga pública con identidad Traslados.
- * El APK REAL es el Cliente Premium v13 firmado, publicado por CI en el sitio
+ * El APK REAL es el Cliente Premium v14 firmado, publicado por CI en el sitio
  * auxiliar. El pasajero descarga exclusivamente desde el origen Workers
  * y no ve GitHub ni conoce herramientas de construcción.
  *
  * Esta ruta nunca recibe una URL externa indicada por el usuario (no SSRF).
  */
 const VERIFIED_CLIENTE_APK =
-  "https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/traslados-cliente-premium-v13.apk";
-const FILE_NAME="Traslados_Cliente_Premium_v13_RELEASE.apk";
+  "https://marcelofgx-ctrl.github.io/traslados-android/web-pasajero/downloads/traslados-cliente-premium-v14.apk";
+const FILE_NAME="Traslados_Cliente_Premium_v14_RELEASE.apk";
 const TYPE="application/vnd.android.package-archive";
 
 function unavailable() {
