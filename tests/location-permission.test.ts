@@ -17,6 +17,14 @@ describe("Android Chrome/PWA GPS permission assistance",()=>{
     expect(picker).toContain("El permiso lo concede Android");
     expect(picker).toContain("Volver a intentar");
     expect(picker).toContain("Escribir dirección");
+    expect(picker).toContain('navigator.permissions?.query({name:"geolocation"})');
+    expect(picker).toContain("setGpsPreparation(true)");
+    expect(picker).toContain("Prepará el permiso de ubicación");
+    expect(picker).toContain("Uber, Cabify o Mapa Trayectos");
+    expect(picker).toContain("Solicitar permiso");
+    expect(picker).toContain("Escribir origen");
+    expect(picker).toContain("requestGps");
+    expect(picker).toContain('permissionState==="denied"');
     expect(picker).toContain('role="alert"');
   });
   it("retains the canonical Cloudflare Worker and no GPS privilege escalation",()=>{
