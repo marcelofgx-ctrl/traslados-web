@@ -1,6 +1,7 @@
 name: Lanzamiento Cliente Premium y expansion (Workers)
 
-# Lanzamiento único activado solamente al crear este workflow (otros commits no despliegan).
+# Lanzamiento supervisado al modificar exclusivamente este workflow (no despliega otros commits).
+# Ejecución solicitada tras cargar CLOUDFLARE_ACCOUNT_ID y CLOUDFLARE_API_TOKEN en GitHub Actions (10/10/2026).
 on:
   push:
     branches: [main]
