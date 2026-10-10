@@ -107,22 +107,41 @@ jobs:
             http://127.0.0.1:8787/api/auth/passkey)"
           [ "$denied" = 403 ] || { cat /tmp/passkey-response.json; echo "Protección de origen falló: $denied"; exit 1; }
           echo "Passkey bloqueado sin claves e impide llamadas desde origen no permitido."
-      - name: Motor Cloudflare ya publicado (informativo, no despliega)
+      - name: Diagnóstico de ruta real publicada en Cloudflare (sin desplegar ni leer secretos)
         shell: bash
         run: |
-          status="$(curl -sSL --max-time 15 -o /tmp/route-public.json -w '%{http_code}' 'https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9' || true)"
-          echo "Worker publicado HTTP: $status"
-          python3 - <<'PY'
-          import json
+          set -euo pipefail
+          url='https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9'
+          status="$(curl -sSL --max-time 25 -o /tmp/route-public.json -w '%{http_code}' "$url" || true)"
+          echo "HTTP Worker producción: $status"
+          ROUTE_HTTP="$status" python3 - <<'PY'
+          import json,os
           try:
             with open('/tmp/route-public.json',encoding='utf8') as f: data=json.load(f)
           except Exception:
-            print("Worker remoto sin respuesta JSON comprobable")
+            print("SIN JSON: el endpoint no respondió o hubo un bloqueo de red.")
             raise SystemExit(0)
-          print("ORS disponible:",data.get('available'))
-          print("Motivo:",data.get('reason','ninguno'))
-          print("Tarifa de referencia publicada:",isinstance(data.get('referenceFareUyu'),(int,float)))
-          print("Advertencia: build exitoso no publica automáticamente el Worker.")
+          ok=data.get('available') is True
+          source=data.get('source')
+          km=data.get('distanceKm')
+          mins=data.get('durationMin')
+          fare=data.get('referenceFareUyu')
+          reason=data.get('reason')
+          print("Ruta por carretera:", "DISPONIBLE" if ok else "NO DISPONIBLE")
+          if ok:
+            print("Fuente:",source if source in ('openrouteservice','supabase_route_cache') else "desconocida")
+            print("Distancia válida:",isinstance(km,(float,int)) and km>0)
+            print("Tiempo válido:",isinstance(mins,(float,int)) and mins>=0)
+            print("Tarifa interna incluida:",isinstance(fare,(float,int)) and fare>0)
+            if source=='supabase_route_cache':
+              print("ATENCIÓN: solo recuperación de caché; ORS para destinos nuevos no acreditado.")
+          else:
+            print("Motivo:",reason if reason in ('not_configured','temporarily_unavailable','no_route','invalid_points') else 'desconocido')
+            if reason=='not_configured':
+              print("PENDIENTE: ORS_API_KEY debe existir en el Worker publicado; compilar no despliega.")
+            elif reason=='temporarily_unavailable':
+              print("PENDIENTE: comprobar validez/permiso/cuota de clave ORS y logs del Worker.")
+          print("Este paso es diagnóstico y NO publica cambios en Cloudflare ni accede a credenciales.")
           PY
 
       - name: Guardar artefacto de compilación
