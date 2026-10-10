@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArrowLeftRight, ArrowUpRight, CarFront, Clock3, MapPin, Pencil, Route, ShieldCheck } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Banknote, CarFront, Clock3, MapPin, Pencil, Route, ShieldCheck } from "lucide-react";
 import type { Loc } from "@/lib/operativa/api";
 import { googleMapsRoute,useRoadEstimate } from "@/lib/use-road-estimate";
 
@@ -12,6 +12,8 @@ export function BookingQuickSummary({origin,destination,stops,onEditOrigin,onEdi
   const points=useMemo(()=>[origin,...stops,destination],[origin,stops,destination]);
   const {route,loading}=useRoadEstimate(points);
   const maps=googleMapsRoute(points);
+  const reference=route?.referenceFareUyu;
+  const estimatedFare=Number.isFinite(reference)&&Number(reference)>0 ? "$ "+Number(reference).toLocaleString("es-UY",{maximumFractionDigits:0}) : null;
   return <section className="booking-quick-summary scroll-mt-28 rounded-2xl border border-primary/35 p-4 shadow-[0_18px_42px_rgba(0,0,0,.14)] sm:p-5" aria-label="Resumen compacto del traslado">
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2"><Route className="size-4 text-[#e2be78]"/><h3 className="text-sm font-semibold text-[#f7efdf]">Tu recorrido</h3></div>
@@ -48,9 +50,13 @@ export function BookingQuickSummary({origin,destination,stops,onEditOrigin,onEdi
           {route?route.durationMin+" min":loading?"Calculando…":"Ver en Maps"}
         </p>
       </div>
+      <div className="col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d9b976]/35 bg-[#d1aa63]/[.10] px-3 py-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#ead6ae]"><Banknote className="size-4 text-[#e5c280]"/> Valor orientativo del traslado</div>
+        <strong className="font-display text-xl tabular-nums text-[#f7e4b7]">{estimatedFare??(loading?"Calculando…":"A confirmar")}</strong>
+      </div>
     </div>
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-      <p className="text-[11px] leading-5 text-[#bccdc5]">{route?"Duración estimada sin tráfico en vivo.": "La ruta por carretera se consulta en Google Maps mientras el motor interno no esté disponible."}</p>
+      <p className="text-[11px] leading-5 text-[#bccdc5]">{estimatedFare?"Estimación según kilómetros por carretera; no incluye peajes ni extras. El conductor confirma el precio definitivo.":route?"Duración estimada sin tráfico en vivo; importe final a confirmar.":"Sin ruta real no calculamos tarifas ficticias. Podés consultar Google Maps."}</p>
       {maps&&<a href={maps} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-[#f2d69c] hover:underline">
         <ArrowUpRight className="size-4"/> Abrir ruta en Google Maps
       </a>}
