@@ -112,8 +112,16 @@ jobs:
         run: |
           set -euo pipefail
           url='https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9'
-          status="$(curl -sSL --max-time 25 -o /tmp/route-public.json -w '%{http_code}' "$url" || true)"
+          status="$(curl -sSL --retry 2 --retry-delay 2 --max-time 25 \
+            -H 'Origin: https://marcelofgx-ctrl.github.io' \
+            -D /tmp/route-public.headers -o /tmp/route-public.json \
+            -w '%{http_code}' "$url" || true)"
           echo "HTTP Worker producción: $status"
+          if grep -qi '^access-control-allow-origin: https://marcelofgx-ctrl.github.io' /tmp/route-public.headers; then
+            echo "CORS Pasajero PWA: PERMITIDO"
+          else
+            echo "CORS Pasajero PWA: NO CONFIRMADO (revisar si el navegador puede consultar)"
+          fi
           ROUTE_HTTP="$status" python3 - <<'PY'
           import json,os
           try:
@@ -133,6 +141,9 @@ jobs:
             print("Distancia válida:",isinstance(km,(float,int)) and km>0)
             print("Tiempo válido:",isinstance(mins,(float,int)) and mins>=0)
             print("Tarifa interna incluida:",isinstance(fare,(float,int)) and fare>0)
+            if isinstance(km,(float,int)) and isinstance(mins,(float,int)):
+              print("Ruta de control:",round(km,1),"km /",round(mins),"min")
+            if isinstance(fare,(float,int)):print("Precio orientativo de control: UYU",round(fare))
             if source=='supabase_route_cache':
               print("ATENCIÓN: solo recuperación de caché; ORS para destinos nuevos no acreditado.")
           else:
