@@ -47,9 +47,26 @@ function errorText(e:unknown) {
   return e instanceof Error ? e.message : "No se pudo completar la operación.";
 }
 function Detail({ label, value }: {label:string,value:string}) { return <div className="flex flex-col gap-1 border-b border-border/70 pb-2 text-sm last:border-0 sm:flex-row sm:gap-4"><span className="shrink-0 text-muted-foreground sm:w-28">{label}</span><span className="break-words font-medium">{value}</span></div>; }
-function Panel({ title, icon, children }: {title:string,icon:ReactNode,children:ReactNode}) {
-  return <div className="premium-glass rounded-2xl border border-primary/20 p-4 shadow-[0_16px_38px_rgba(0,0,0,.10)] sm:p-6">
-    <div className="mb-5 flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><h2 className="font-display text-lg font-semibold">{title}</h2></div>{children}
+function Panel({ title, icon, children, compact=false }: {title:string,icon:ReactNode,children:ReactNode,compact?:boolean}) {
+  return <div className={compact
+    ? "space-y-2 rounded-2xl"
+    : "premium-glass rounded-2xl border border-primary/20 p-4 shadow-[0_16px_38px_rgba(0,0,0,.10)] sm:p-6"}>
+    {!compact&&<div className="mb-5 flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><h2 className="font-display text-lg font-semibold">{title}</h2></div>}
+    {children}
+  </div>;
+}
+
+/** No duplicar de entrada la tarjeta A/B ni construir el mapa hasta que se pida. */
+function BookingRouteDetails({origin,destination,stops}:{origin:Loc|null,destination:Loc|null,stops:Loc[]}) {
+  const [expanded,setExpanded]=useState(false);
+  if(!origin||!destination)return null;
+  return <div className="rounded-xl border border-primary/20 bg-primary/[.035] p-2">
+    <button type="button" onClick={()=>setExpanded(value=>!value)} aria-expanded={expanded}
+      className="flex min-h-10 w-full items-center justify-between gap-2 px-2 text-left text-xs font-semibold text-[#e5c68c] hover:text-[#fff1cc]">
+      <span className="flex items-center gap-2"><Navigation2 className="size-4"/> {expanded?"Ocultar mapa detallado":"Ver mapa detallado del recorrido"}</span>
+      {expanded?<ChevronUp className="size-4"/>:<ChevronDown className="size-4"/>}
+    </button>
+    {expanded&&<div className="mt-2"><RoutePreview origin={origin} destination={destination} stops={stops}/></div>}
   </div>;
 }
 function Header({ go, name }:{go:(v:View)=>void,name?:string|undefined}) {
@@ -206,14 +223,14 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
         {forOther&&<Detail label="Viaja" value={otherName+" · "+otherPhone}/>}
         {comments&&<Detail label="Comentarios" value={comments}/>}
       </div></Panel>
-      <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
+      <BookingRouteDetails origin={origin} destination={destination} stops={routeStops}/>
       <div className="premium-glass rounded-2xl border border-primary/25 p-4">
         <p className="text-sm font-semibold text-[#f2dfb9]">Presupuesto personalizado · pendiente de revisión</p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">Enviarás una solicitud, no un pago. El conductor revisará itinerario, distancia por carretera y disponibilidad, y luego podrás aceptar o rechazar el presupuesto desde Mis traslados.</p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row"><Button className="h-12 flex-1" variant="outline" onClick={()=>setConfirm(false)} disabled={busy}><ArrowLeft className="mr-2 size-4"/> Editar</Button><Button className="h-12 flex-[2]" disabled={busy} onClick={()=>void submit()}>{busy?"Enviando…":"Enviar solicitud"} <ArrowRight className="ml-2 size-4"/></Button></div>
     </div>:<div className="mt-7 space-y-5">
-      <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>}>
+      <Panel title="Recorrido" icon={<Navigation2 className="size-5"/>} compact={Boolean(origin&&destination)}>
         {origin&&destination?<BookingQuickSummary origin={origin} destination={destination} stops={routeStops}
           date={pickupMode==="programado"?date:undefined} time={pickupMode==="programado"?time:undefined}
           onEditOrigin={editOrigin} onEditDestination={editDestination} onSwap={reverseRoute}/>:<div className="space-y-4">
@@ -267,7 +284,7 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
           </div>
         </div>
       </Panel>
-      <RoutePreview origin={origin} destination={destination} stops={routeStops} compact/>
+      <BookingRouteDetails origin={origin} destination={destination} stops={routeStops}/>
       {pickupMode==="programado"&&<BookingAvailability token={token} date={date} time={time} origin={origin} destination={destination}
         onDateChange={selectDate} onTimeChange={selectHour} revision={availableRevision}/>}
 
