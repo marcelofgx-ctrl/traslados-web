@@ -10,7 +10,7 @@ const KEY="sb_publishable_HnbMZW2dKpm6mBq-y5qkaA_Jlfx4BB9";
 /** One public, privacy-safe status from the Mapa heartbeat. No account needed.
  * The exact driver's position and pickup ETA remain restricted to a valid session.
  */
-export function DriverPickupEta({token,origin}:{token:string;origin:Loc|null}){
+export function DriverPickupEta({token,origin,compact=false}:{token:string;origin:Loc|null;compact?:boolean}){
   const [presence,setPresence]=useState<Presence|null>(null);
   const [data,setData]=useState<Eta|null>(null);
   const [loading,setLoading]=useState(true);
@@ -66,9 +66,11 @@ export function DriverPickupEta({token,origin}:{token:string;origin:Loc|null}){
     temporarily_unavailable:"La estimación de llegada está temporalmente indisponible."
   };
   return <section aria-live="polite"
-    className="overflow-hidden rounded-2xl border border-[#d9b776]/40 bg-[linear-gradient(126deg,#133c42,#092b33)] px-4 py-3.5 shadow-[0_12px_34px_rgba(0,0,0,.16)]">
+    className={compact
+      ?"overflow-hidden rounded-xl border border-[#d9b776]/25 bg-[#092b33]/70 p-3"
+      :"overflow-hidden rounded-2xl border border-[#d9b776]/40 bg-[linear-gradient(126deg,#133c42,#092b33)] px-4 py-3.5 shadow-[0_12px_34px_rgba(0,0,0,.16)]"}>
     <div className="flex items-center gap-2 text-xs font-semibold text-[#efd7a7]">
-      <CarFront className="size-4"/> Disponibilidad de Mapa Trayectos
+      <CarFront className="size-4"/> Conductor · estado en vivo
       {loading&&<Loader2 className="ml-auto size-4 animate-spin"/>}
     </div>
 
