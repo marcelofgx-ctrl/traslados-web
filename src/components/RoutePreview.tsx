@@ -7,15 +7,9 @@ import { ExternalLink, CarFront, Clock3, Loader2 } from "lucide-react";
 
 type Props={origin:Loc|null;destination:Loc|null;stops:Loc[];compact?:boolean};
 const points=(o:Loc|null,s:Loc[],d:Loc|null)=>[o,...s,d].filter((x):x is Loc=>Boolean(x && Number.isFinite(x.lat)&&Number.isFinite(x.lng)));
-function straightKm(a:Loc,b:Loc){
-  const rad=Math.PI/180,p1=a.lat*rad,p2=b.lat*rad,dp=(b.lat-a.lat)*rad,dl=(b.lng-a.lng)*rad;
-  const h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
-  return 6371*2*Math.asin(Math.min(1,Math.sqrt(h)));
-}
 export function RoutePreview({origin,destination,stops,compact=false}:Props){
   const [open,setOpen]=useState(!compact);
   const route=useMemo(()=>points(origin,stops,destination),[origin,stops,destination]);
-  const direct=route.length>1?route.slice(1).reduce((n,p,i)=>n+straightKm(route[i]!,p),0):null;
   const {route:result,loading:working}=useRoadEstimate(route);
   const mapsUrl=googleMapsRoute(route);
   const description=(i:number)=>i===0?"Origen":i===route.length-1?"Destino":"Parada "+i;
