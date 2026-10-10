@@ -56,7 +56,7 @@ export function BookingQuickSummary({origin,destination,stops,onEditOrigin,onEdi
       </div>
     </div>
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-      <p className="text-[11px] leading-5 text-[#bccdc5]">{estimatedFare?"Estimación según kilómetros por carretera; no incluye peajes ni extras. El conductor confirma el precio definitivo.":route?"Duración estimada sin tráfico en vivo; importe final a confirmar.":"Sin ruta real no calculamos tarifas ficticias. Podés consultar Google Maps."}</p>
+      <p className="text-[11px] leading-5 text-[#bccdc5]">{estimatedFare?"Estimación por ruta real; sin peajes ni extras. Conductor confirma el precio final. © openrouteservice.org by HeiGIT · Map data © OpenStreetMap contributors.":route?"Duración estimada sin tráfico en vivo; importe final a confirmar.":"Sin ruta real no calculamos tarifas ficticias. Podés consultar Google Maps."}</p>
       {maps&&<a href={maps} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-[#f2d69c] hover:underline">
         <ArrowUpRight className="size-4"/> Abrir ruta en Google Maps
       </a>}
