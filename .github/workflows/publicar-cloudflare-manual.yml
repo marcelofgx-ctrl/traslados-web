@@ -35,6 +35,19 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Falta el secreto CLOUDFLARE_API_TOKEN en GitHub'; exit 2; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Falta el secreto CLOUDFLARE_ACCOUNT_ID en GitHub'; exit 2; }
+      - name: Verificar que la dirección pública no cambia
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          with open('wrangler.jsonc',encoding='utf8') as f: c=json.load(f)
+          expected='https://traslados-web.marcelof-gx.workers.dev'
+          assert c['name']=='traslados-web','No cambiar el nombre del Worker'
+          assert c['vars']['PASSKEY_PUBLIC_ORIGIN']==expected,'No cambiar la URL canónica'
+          assert c.get('keep_vars') is True,'Preservar secretos de producción'
+          assert 'ORS_API_KEY' not in c.get('vars',{}),'No versionar claves privadas'
+          print('PASS: desplegar exclusivamente sobre el mismo dominio Workers')
+          PY
       - name: Publicar Worker existente tras confirmación manual
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -46,6 +59,10 @@ jobs:
           set -euo pipefail
           curl -fsSL --max-time 25 https://traslados-web.marcelof-gx.workers.dev/ -o /tmp/home.html
           grep -q 'Cada viaje' /tmp/home.html
+          grep -q 'data-web-release="workers-2026-10-10-r3"' /tmp/home.html || {
+            echo 'No se publica la revisión premium Workers R3 esperada'
+            exit 1
+          }
           grep -q 'Consultando Mapa Trayectos' /tmp/home.html || { echo 'Falta disponibilidad Mapa en portada Workers'; exit 1; }
           code="$(curl -s -o /tmp/ruta.json -w '%{http_code}'             'https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9')"
           echo "Ruta ORS producción HTTP: $code"
