@@ -2,6 +2,14 @@
 
 Corte: 09/10/2026 (Uruguay). Coordinación: https://github.com/marcelofgx-ctrl/traslados-android/blob/main/docs/CONTEXTO_MAESTRO_PROYECTOS.md
 
+## Verificación operacional posterior (09/10/2026)
+
+**Diagnóstico HTTP DE PRODUCCIÓN VERIFICADO en GitHub Actions:** smoke público de Pages run 38011099526, job 114091038144: la PWA v4 pasó checks de HTML/JS, índice 22.499 lugares y recurso precio; pero la llamada a Cloudflare GET /api/public/route-estimate devolvió **HTTP 503**, JSON **reason: not_configured**, available=false. Por tanto **ORS_API_KEY no está configurada/visible para el Worker actual**. SIN ESTA CREDENCIAL el motor por calles y su tarifa referencial NO funcionan en producción, aunque el código nuevo esté compilado y la web PWA desplegada. No mostrar $320 como si lo calculó el servidor antes de corregirlo. El endpoint utiliza el host vigente api.heigit.org.
+
+Se habilitó despliegue MANUAL y controlado del Worker en GitHub Actions: .github/workflows/publicar-cloudflare-manual.yml, commit 4365d412. No despliega con cada push; requiere secretos GitHub CLOUDFLARE_API_TOKEN y CLOUDFLARE_ACCOUNT_ID si se opta por esa vía. Alternativamente configurar ORS_API_KEY en Cloudflare Workers & Pages > Worker traslados-web > Settings > Variables and Secrets > Add > Secret, guardar/deploy, y desplegar el código actualizado mediante Wrangler / vía de publicación existente. La tasa 40 se puede cambiar en el Worker con FARE_REFERENCE_UYU_PER_KM (texto no secreto). No solicitar que se peguen credenciales al chat ni subirlas a GitHub.
+
+**Clasificación actual:** Pages PWA v4 PUBLICADA y smoke VALIDADO; Cloudflare web build CI SUCCESS; precio en Worker IMPLEMENTADO EN CÓDIGO, NO ACTIVO EN PRODUCCIÓN; GPS comercial / ETA conductor NO IMPLEMENTADOS.
+
 ## Política de precio de referencia (implementada en código; publicación Cloudflare a verificar)
 
 El motor de rutas existente es GET /api/public/route-estimate, en traslados-web. Usa openrouteservice para kilómetros por CALLES y minutos, no distancia aérea. Su respuesta ahora incluye referenceFareUyu si ORS ofrece una ruta válida. La variable de entorno interna FARE_REFERENCE_UYU_PER_KM configura la referencia, por defecto 40 UYU por km. Así, 8 km = $320; 43 km = $1720. Se redondea al múltiplo de 10 UYU; no incluye peajes, esperas, extras, nocturnidad, ni viaje del conductor hasta el origen. No muestra cifras si faltan rutas reales o si el parámetro de tarifa es inválido.
