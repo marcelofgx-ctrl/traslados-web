@@ -19,6 +19,7 @@ import { PremiumHome } from "@/components/PremiumHome";
 import { RoutePreview } from "@/components/RoutePreview";
 import { BookingQuickSummary } from "@/components/BookingQuickSummary";
 import { PickupModePicker, type PickupMode } from "@/components/PickupModePicker";
+import { DriverPickupEta } from "@/components/DriverPickupEta";
 import { loginWithPasskey, passkeysAvailable } from "@/lib/operativa/passkeys";
 import {
   ACTIVE_STATUSES, OP_STATUS_LABEL, AVAILABILITY_REASON, checkAvailability, createReservation, getProfile,
@@ -275,6 +276,8 @@ function Booking({ customer, token, onSent, previous }: {customer:string,token:s
       <PickupModePicker mode={pickupMode} onModeChange={changeMode}
         hasOrigin={Boolean(origin)} hasDestination={Boolean(destination)}
         originText={origin?.text} destinationText={destination?.text}/>
+      {pickupMode!=="programado"&&<DriverPickupEta token={token} origin={origin}/>}
+
       <Panel title="Pasajeros" icon={<Users className="size-5"/>}>
         <div className="flex items-center justify-between gap-4"><span className="text-sm text-[#c3d3cb]">Personas que viajan</span>
           <div className="flex items-center gap-3">
