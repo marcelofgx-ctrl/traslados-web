@@ -16,11 +16,12 @@ const routeUrl="https://traslados-web.marcelof-gx.workers.dev/api/public/route-e
 // A cold isolate simply recomputes through the existing verified road provider.
 const ROAD_CACHE_MS=20000;
 const ROAD_CACHE_LIMIT=96;
-const roadCache=new Map<string,{expires:number,value:Record<string,unknown>}>();
+type VerifiedRoad={available:true,source:string,distanceKm:number,durationMin:number};
+const roadCache=new Map<string,{expires:number,value:VerifiedRoad}>();
 function roadCacheKey(driverLat:number,driverLng:number,originLat:number,originLng:number){
   return [driverLat,driverLng,originLat,originLng].map(x=>x.toFixed(4)).join(":");
 }
-function validRoad(result:Record<string,unknown>){
+function validRoad(result:Record<string,unknown>):result is VerifiedRoad{
   return result.available===true
     &&["openrouteservice","supabase_route_cache"].includes(String(result.source))
     &&typeof result.distanceKm==="number"&&Number.isFinite(result.distanceKm)&&result.distanceKm>0
@@ -111,7 +112,7 @@ Deno.serve(async(req)=>{
     const cacheKey=roadCacheKey(driverLat,driverLng,lat,lng);
     const cached=roadCache.get(cacheKey);
     const current=Date.now();
-    let result:Record<string,unknown>|null=cached&&cached.expires>current?cached.value:null;
+    let result:VerifiedRoad|null=cached&&cached.expires>current?cached.value:null;
     if(!result){
       if(cached)roadCache.delete(cacheKey);
       const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
@@ -127,8 +128,7 @@ Deno.serve(async(req)=>{
         roadCache.set(cacheKey,{expires:Date.now()+ROAD_CACHE_MS,value:candidate});
       }finally{clearTimeout(timer);}
     }
-    try{
-      // Privacy: coarse ranges, not exact geometric breadcrumbs.
+    // Privacy: coarse ranges, not exact geometric breadcrumbs.
       // UI text always says "sujeto a confirmación", never a confirmed booking.
       const kms=Math.max(0.5,Math.ceil(result.distanceKm*2)/2);
       const eta=Math.max(5,Math.ceil(Math.max(1,result.durationMin)/5)*5);
@@ -139,6 +139,5 @@ Deno.serve(async(req)=>{
           locationAgeSec:Math.max(0,Math.min(90,Math.ceil(Number(context.locationAgeSec||0)/15)*15))}),
         approximate:true,confirmationRequired:true
       },200,origin);
-    }finally{/* Route timers are cleaned at each network fetch. */}
   }catch{return response({available:false,reason:"temporarily_unavailable"},503,origin);}
 });
