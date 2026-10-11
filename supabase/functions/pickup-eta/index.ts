@@ -11,6 +11,23 @@ const allowed=new Set([
   "https://traslados-web.marcelof-gx.workers.dev"
 ]);
 const routeUrl="https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate";
+// In-memory, best-effort cache per Edge isolate: never replaces the SQL
+// availability/consent/quota gate and never leaves this server as driver GPS.
+// A cold isolate simply recomputes through the existing verified road provider.
+const ROAD_CACHE_MS=20000;
+const ROAD_CACHE_LIMIT=96;
+type VerifiedRoad={available:true,source:string,distanceKm:number,durationMin:number};
+const roadCache=new Map<string,{expires:number,value:VerifiedRoad}>();
+function roadCacheKey(driverLat:number,driverLng:number,originLat:number,originLng:number){
+  return [driverLat,driverLng,originLat,originLng].map(x=>x.toFixed(4)).join(":");
+}
+function validRoad(result:Record<string,unknown>):result is VerifiedRoad{
+  return result.available===true
+    &&["openrouteservice","supabase_route_cache"].includes(String(result.source))
+    &&typeof result.distanceKm==="number"&&Number.isFinite(result.distanceKm)&&result.distanceKm>0
+    &&typeof result.durationMin==="number"&&Number.isFinite(result.durationMin)&&result.durationMin>=0;
+}
+
 function response(body:unknown,status=200,origin:string|null=null){
   const headers:Record<string,string>={
     "Content-Type":"application/json; charset=utf-8",
@@ -92,19 +109,26 @@ Deno.serve(async(req)=>{
        return response({available:false,reason:"temporarily_unavailable"},503,origin);
     // Coordinates are never returned. They travel ONLY between trusted servers.
     const points=`${driverLng.toFixed(6)},${driverLat.toFixed(6)};${lng.toFixed(6)},${lat.toFixed(6)}`;
-    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
-    try{
-      const route=await fetch(routeUrl+"?points="+encodeURIComponent(points),{
-        headers:{"Accept":"application/json","User-Agent":"Traslados-Pickup-ETA/1.0"},signal:ctrl.signal,cache:"no-store"
-      });
-      if(!route.ok)return response({available:false,reason:"route_unavailable"},200,origin);
-      const result:Record<string,unknown>=await route.json();
-      if(result.available!==true||!["openrouteservice","supabase_route_cache"].includes(String(result.source))
-        ||typeof result.distanceKm!=="number"||typeof result.durationMin!=="number"
-        ||!Number.isFinite(result.distanceKm)||result.distanceKm<=0
-        ||!Number.isFinite(result.durationMin)||result.durationMin<0)
-        return response({available:false,reason:"route_unavailable"},200,origin);
-      // Privacy: coarse ranges, not exact geometric breadcrumbs.
+    const cacheKey=roadCacheKey(driverLat,driverLng,lat,lng);
+    const cached=roadCache.get(cacheKey);
+    const current=Date.now();
+    let result:VerifiedRoad|null=cached&&cached.expires>current?cached.value:null;
+    if(!result){
+      if(cached)roadCache.delete(cacheKey);
+      const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
+      try{
+        const route=await fetch(routeUrl+"?points="+encodeURIComponent(points),{
+          headers:{"Accept":"application/json","User-Agent":"Traslados-Pickup-ETA/1.0"},signal:ctrl.signal,cache:"no-store"
+        });
+        if(!route.ok)return response({available:false,reason:"route_unavailable"},200,origin);
+        const candidate:Record<string,unknown>=await route.json();
+        if(!validRoad(candidate))return response({available:false,reason:"route_unavailable"},200,origin);
+        result=candidate;
+        if(roadCache.size>=ROAD_CACHE_LIMIT)roadCache.clear();
+        roadCache.set(cacheKey,{expires:Date.now()+ROAD_CACHE_MS,value:candidate});
+      }finally{clearTimeout(timer);}
+    }
+    // Privacy: coarse ranges, not exact geometric breadcrumbs.
       // UI text always says "sujeto a confirmación", never a confirmed booking.
       const kms=Math.max(0.5,Math.ceil(result.distanceKm*2)/2);
       const eta=Math.max(5,Math.ceil(Math.max(1,result.durationMin)/5)*5);
@@ -115,6 +139,5 @@ Deno.serve(async(req)=>{
           locationAgeSec:Math.max(0,Math.min(90,Math.ceil(Number(context.locationAgeSec||0)/15)*15))}),
         approximate:true,confirmationRequired:true
       },200,origin);
-    }finally{clearTimeout(timer);}
   }catch{return response({available:false,reason:"temporarily_unavailable"},503,origin);}
 });
