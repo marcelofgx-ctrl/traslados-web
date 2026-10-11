@@ -95,7 +95,7 @@ Deno.serve(async(req)=>{
     const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
     try{
       const route=await fetch(routeUrl+"?points="+encodeURIComponent(points),{
-        headers:{"Accept":"application/json"},signal:ctrl.signal,cache:"no-store"
+        headers:{"Accept":"application/json","User-Agent":"Traslados-Pickup-ETA/1.0"},signal:ctrl.signal,cache:"no-store"
       });
       if(!route.ok)return response({available:false,reason:"route_unavailable"},200,origin);
       const result:Record<string,unknown>=await route.json();
