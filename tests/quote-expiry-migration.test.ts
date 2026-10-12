@@ -18,7 +18,7 @@ describe("driver quote expiration guard migration", () => {
   });
 
   test("preserves function permissions and performs a post-migration assertion", () => {
-    expect((sql.match(/SECURITY DEFINER/g) || []).length).toBe(2);
+    expect((sql.match(/\n SECURITY DEFINER\n/g) || []).length).toBe(2);
     expect((sql.match(/SET search_path TO 'public'/g) || []).length).toBe(2);
     expect(sql).toContain("pg_get_functiondef");
   });
