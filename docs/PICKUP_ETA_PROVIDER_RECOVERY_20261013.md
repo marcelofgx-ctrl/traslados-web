@@ -1,5 +1,8 @@
 # Recogida — proveedor ORS resiliente (13/10/2026)
 
+> **Publicación comprobada 13/10/2026:** workflow manual [#38348786259](https://github.com/marcelofgx-ctrl/traslados-web/actions/runs/38348786259) concluido **SUCCESS**, commit `c8c1317a`; `wrangler deploy` publicó `traslados-web` en la URL canónica y la prueba externa de ruta por carretera devolvió HTTP 200 con kilómetros, minutos y tarifa orientativa verificados. **Sigue pendiente la prueba física de ETA de recogida conductor→origen en Samsung**, que requiere sesión y ubicación operativas; la ruta pública de control no equivale a esa prueba.
+
+
 ## Diagnóstico de producción (solo lectura)
 - Captura Samsung 12/10 23:54: presencia correcta, pero recogida sin ETA por `route_unavailable`; los 12,1 km / 17 min corresponden a ORIGEN→DESTINO del pasajero, **no** a distancia conductor→origen.
 - Supabase `pickup-eta` v5 recibió POST 200 y validó llamadas a `driver_pickup_eta_context_v1`. HTTP 200 no demuestra ruta exitosa, pues Edge devuelve también errores funcionales dentro del JSON.
