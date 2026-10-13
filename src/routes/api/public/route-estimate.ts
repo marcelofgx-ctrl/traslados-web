@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { parseRoadPoints, parseOrsGeojson } from "@/lib/road-route";
+import { parseRoadPoints } from "@/lib/road-route";
+import { requestVerifiedOrsRoad } from "@/lib/ors-road-resilience";
 import { fetchVerifiedCachedRoute,fetchPublicReferenceFare } from "@/lib/verified-road-cache";
 
 /** Single public road-estimate contract used by both Premium and GitHub Pages.
@@ -22,8 +23,10 @@ export const Route = createFileRoute("/api/public/route-estimate")({
         if(!points)return respond({available:false,reason:"invalid_points"},400);
 
         const fromCache=async(reason:"not_configured"|"temporarily_unavailable"|"no_route")=>{
+          // The Supabase Edge caller has a 7.5s road-provider deadline.
+          // Leave time for a verified ROAD-cache fallback after ORS times out.
           const controller=new AbortController();
-          const timeout=setTimeout(()=>controller.abort(),3500);
+          const timeout=setTimeout(()=>controller.abort(),1200);
           try{
             const cached=await fetchVerifiedCachedRoute(points,controller.signal);
             if(cached)return respond(cached,200,"public, max-age=300, s-maxage=300");
@@ -33,31 +36,27 @@ export const Route = createFileRoute("/api/public/route-estimate")({
 
         const key=process.env["ORS_API_KEY"];
         if(!key)return fromCache("not_configured");
-        const controller=new AbortController();
-        const timeout=setTimeout(()=>controller.abort(),7000);
-        try{
-          const upstream=await fetch("https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson",{
-            method:"POST",
-            headers:{"Authorization":key,"Content-Type":"application/json","Accept":"application/geo+json"},
-            body:JSON.stringify({
-              coordinates:points.map(p=>[p.lng,p.lat]),
-              instructions:false,geometry_simplify:true
-            }),
-            signal:controller.signal,
+        const outcome=await requestVerifiedOrsRoad(points,key);
+        if(!outcome.ok){
+          // Categories only. Never log waypoint coordinates, keys, tokens or
+          // private driver location (Cloudflare observability is server-side).
+          console.warn("verified-road-provider",{
+            category:outcome.category,httpStatus:outcome.httpStatus||0,
+            attempts:outcome.attempts
           });
-          if(!upstream.ok)return fromCache(upstream.status===404?"no_route":"temporarily_unavailable");
-          const raw:unknown=await upstream.json();
-          const route=parseOrsGeojson(raw);
-          if(!route)return fromCache("no_route");
-          // Price policy lives in Supabase, adjustable with the driver PIN.
-          // Missing policy must NEVER generate a fabricated binding quote.
-          const fare=await fetchPublicReferenceFare(route.distanceKm,controller.signal);
-          return respond({...route,calculatedAt:new Date().toISOString(),
-            ...(fare===null?{}:{referenceFareUyu:fare}),
-          },200,"public, max-age=300, s-maxage=300");
-        }catch{
-          return fromCache("temporarily_unavailable");
-        }finally{clearTimeout(timeout);}
+          return fromCache(outcome.reason);
+        }
+        const route=outcome.route;
+        // Reference fare is optional; never block an already verified ROAD
+        // ETA on a slow public-fare lookup.
+        const fareController=new AbortController();
+        const fareTimeout=setTimeout(()=>fareController.abort(),600);
+        let fare:number|null=null;
+        try{fare=await fetchPublicReferenceFare(route.distanceKm,fareController.signal);}
+        finally{clearTimeout(fareTimeout);}
+        return respond({...route,calculatedAt:new Date().toISOString(),
+          ...(fare===null?{}:{referenceFareUyu:fare}),
+        },200,"public, max-age=300, s-maxage=300");
       },
     },
   },
