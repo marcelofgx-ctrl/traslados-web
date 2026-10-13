@@ -38,7 +38,12 @@ export function parseOrsGeojson(data:unknown):Omit<RoadRoute,"calculatedAt">|nul
   if(Number(dist)<0||Number(dur)<0)return null;
   const coords=geometry.map(p=>[p[1],p[0]] as [number,number]);
   if(!coords.every(p=>validUruguayPoint({lat:p[0],lng:p[1]})))return null;
-  return {available:true,source:"openrouteservice",distanceKm:Math.round(Number(dist)/100)/10,durationMin:Math.ceil(Number(dur)/60),geometry:coords};
+  // Distances under 50 m round to 0.0 km otherwise, and the trusted
+  // pickup Edge would discard this genuinely verified short road segment.
+  // Never infer a route from straight-line measurements.
+  return {available:true,source:"openrouteservice",
+    distanceKm:Number(dist)>0?Math.max(0.1,Math.round(Number(dist)/100)/10):0,
+    durationMin:Math.ceil(Number(dur)/60),geometry:coords};
 }
 
 /** Tarifa interna orientativa, parametrizable en el Worker con FARE_REFERENCE_UYU_PER_KM.
