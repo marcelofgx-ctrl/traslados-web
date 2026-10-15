@@ -237,8 +237,7 @@ BEGIN
     'quote_rejected_at',v_res.quote_rejected_at,'confirmed_at',v_res.confirmed_at,
     'updated_at',v_res.updated_at);
 END
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.driver_send_quote_v10(p_pin text, p_reservation_id uuid, p_route_distance_km numeric, p_price_per_km numeric, p_minimum numeric, p_tolls numeric, p_waiting numeric, p_pickup_extra numeric, p_other numeric, p_reference_total numeric, p_final_total numeric, p_includes text DEFAULT NULL::text, p_route_duration_min integer DEFAULT NULL::integer)
  RETURNS json
@@ -291,8 +290,7 @@ begin
     'quote_reference_total',v.quote_reference_total,'quote_final_total',v.quote_final_total,
     'quote_includes',v.quote_includes,'quote_sent_at',v.quote_sent_at,'updated_at',v.updated_at);
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.driver_send_quote_v10_7(p_pin text, p_reservation_id uuid, p_route_distance_km numeric, p_price_per_km numeric, p_minimum numeric, p_toll_count integer, p_toll_unit_value numeric, p_waiting numeric, p_pickup_extra numeric, p_other numeric, p_reference_total numeric, p_final_total numeric, p_includes text DEFAULT NULL::text, p_route_duration_min integer DEFAULT NULL::integer)
  RETURNS json
@@ -348,7 +346,7 @@ begin
     'quote_reference_total',v.quote_reference_total,'quote_final_total',v.quote_final_total,
     'quote_includes',v.quote_includes,'quote_sent_at',v.quote_sent_at,'updated_at',v.updated_at);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.driver_get_vehicle_settings_v1(p_pin text)
