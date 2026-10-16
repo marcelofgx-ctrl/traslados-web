@@ -25,7 +25,8 @@ export function getRecentVerifiedRoad(points:RoadPoint[],now=Date.now()):RoadRou
   if(!entry)return null;
   if(entry.expires<=now){entries.delete(k);return null;}
   if(!healthy(entry.route)){entries.delete(k);return null;}
-  return {...entry.route, geometry:[...entry.route.geometry]};
+  const {referenceFareUyu:__ignoredFare,...verified}=entry.route;
+  return {...verified, geometry:[...verified.geometry]};
 }
 export function saveRecentVerifiedRoad(points:RoadPoint[],route:RoadRoute,now=Date.now()):void {
   if(points.length<2||!healthy(route))return;
@@ -33,6 +34,7 @@ export function saveRecentVerifiedRoad(points:RoadPoint[],route:RoadRoute,now=Da
     if(entry.expires<=now)entries.delete(k);
   }
   if(entries.size>=MAX_ENTRIES)entries.delete(entries.keys().next().value!);
-  entries.set(key(points),{expires:now+TTL_MS,route:{...route,geometry:[...route.geometry]}});
+  const {referenceFareUyu:__ignoredFare,...verified}=route;
+  entries.set(key(points),{expires:now+TTL_MS,route:{...verified,geometry:[...verified.geometry]}});
 }
 export function clearRecentVerifiedRoadForTests():void {entries.clear();}
