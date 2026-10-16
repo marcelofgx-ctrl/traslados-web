@@ -9,6 +9,14 @@ ALTER TABLE public.reservations
   ADD CONSTRAINT reservations_fare_mode_check
   CHECK (fare_mode IN ('quote','fixed'));
 
+-- Preserve all previous quote states and add the immutable waiting-for-driver
+-- state, so an older Conductor cannot submit a modified price for a fixed trip.
+ALTER TABLE public.reservations DROP CONSTRAINT reservations_quote_status_chk;
+ALTER TABLE public.reservations ADD CONSTRAINT reservations_quote_status_chk
+  CHECK (quote_status IN (
+    'SIN_PRESUPUESTO','ENVIADO','ACEPTADO','RECHAZADO','PRECIO_FIJO'
+  ));
+
 CREATE OR REPLACE FUNCTION public.customer_request_pickup_fixed_v1(
   p_request_id uuid,
   p_mode text,
