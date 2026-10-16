@@ -1,37 +1,20 @@
 name: Publicar Traslados Web en Cloudflare (manual)
 
-# Manual by default. One-time approval received on 16/10/2026 to deploy
-# the already CI-verified pickup ETA fix. Push trigger restricted to ONE marker.
+# La publicación queda bajo aprobación manual; push a main NO despliega Cloudflare.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'ops/eta-hotfix-once-20261016.trigger'
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    name: Build, pruebas y publicación aprobada
-    if: >-
-      ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ops: deploy-worker-eta-20261016-one-shot') }}
+    name: Build, pruebas y publicación manual
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout código real
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Guardar contrato aprobado del hotfix
-        shell: bash
-        run: |
-          set -euo pipefail
-          git merge-base --is-ancestor 126432c0a256f9fcf40be8c661c8f68a084b09bc HEAD
-          grep -q 'getRecentVerifiedRoad(points)' src/routes/api/public/route-estimate.ts
-          grep -q 'nearbyCoincidentEndpoints' src/lib/ors-road-resilience.ts
-          echo 'PASS: hotfix ETA validado está en este commit'
       - name: Instalar Bun
         uses: oven-sh/setup-bun@v2
         with:
