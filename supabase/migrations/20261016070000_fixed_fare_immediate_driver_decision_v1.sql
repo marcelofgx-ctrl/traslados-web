@@ -57,16 +57,6 @@ BEGIN
   IF line_km IS NULL OR p_route_distance_km < greatest(0.1,round(line_km::numeric*0.90,1)) THEN
     RAISE EXCEPTION 'La ruta indicada no coincide con el trayecto. Volvé a calcular';
   END IF;
-  -- Serialize fare configuration changes with request creation.
-  SELECT reference_rate_uyu_per_km INTO rate
-    FROM public.driver_settings WHERE singleton_id=1 FOR SHARE;
-  IF rate IS NULL OR rate<1 OR rate>1000 THEN
-    RAISE EXCEPTION 'Tarifa temporalmente no disponible';
-  END IF;
-  fare:=round(p_route_distance_km*rate,2);
-  IF p_expected_rate IS DISTINCT FROM rate OR p_expected_total IS DISTINCT FROM fare THEN
-    RAISE EXCEPTION 'El precio cambió. Actualizá el trayecto antes de solicitar';
-  END IF;
   -- This existing RPC checks customer credentials, coordinates, stops, request
   -- quotas, and UUID idempotency. All effects roll back if later guards fail.
   receipt:=public.customer_request_pickup_v1(
@@ -75,6 +65,8 @@ BEGIN
     p_session_token,p_customer_name,p_customer_phone,p_origin_department,
     p_destination_department,p_stops
   )::jsonb;
+  -- Authenticate and check UUID idempotency BEFORE validating a changed fare:
+  -- a confirmed prior receipt remains recoverable after rate config changes.
   SELECT * INTO v FROM public.reservations
    WHERE id=(receipt->>'id')::uuid AND client_request_id=p_request_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'No se pudo verificar la solicitud'; END IF;
@@ -87,6 +79,16 @@ BEGIN
     END IF;
   ELSIF v.fare_mode='quote' AND v.status='PENDIENTE'
          AND v.quote_status='SIN_PRESUPUESTO' AND receipt->>'reused'='false' THEN
+  -- Serialize fare configuration changes with request creation.
+  SELECT reference_rate_uyu_per_km INTO rate
+    FROM public.driver_settings WHERE singleton_id=1 FOR SHARE;
+  IF rate IS NULL OR rate<1 OR rate>1000 THEN
+    RAISE EXCEPTION 'Tarifa temporalmente no disponible';
+  END IF;
+  fare:=round(p_route_distance_km*rate,2);
+  IF p_expected_rate IS DISTINCT FROM rate OR p_expected_total IS DISTINCT FROM fare THEN
+    RAISE EXCEPTION 'El precio cambió. Actualizá el trayecto antes de solicitar';
+  END IF;
     UPDATE public.reservations SET
       fare_mode='fixed',
       route_distance_km=p_route_distance_km,
