@@ -201,6 +201,37 @@ FROM (SELECT public.get_reservation_by_token_v4(p_token)::jsonb AS value) b
 JOIN public.reservations r ON r.id=(b.value->>'id')::uuid;
 $function$;
 
+-- Prevent legacy driver_set_status_v2 from bypassing the PIN-authorized
+-- agenda + fare-acceptance RPC. The legacy API changes status alone.
+CREATE OR REPLACE FUNCTION public.guard_fixed_fare_reservation_v1()
+RETURNS trigger LANGUAGE plpgsql
+SET search_path TO 'public','pg_temp'
+AS $function$
+BEGIN
+  IF OLD.fare_mode='fixed' THEN
+    IF NEW.fare_mode IS DISTINCT FROM OLD.fare_mode
+       OR NEW.quote_final_total IS DISTINCT FROM OLD.quote_final_total
+       OR NEW.quote_price_per_km IS DISTINCT FROM OLD.quote_price_per_km
+       OR NEW.route_distance_km IS DISTINCT FROM OLD.route_distance_km
+       OR NEW.route_duration_min IS DISTINCT FROM OLD.route_duration_min THEN
+       RAISE EXCEPTION 'El precio aceptado no puede modificarse';
+    END IF;
+    IF OLD.status='PENDIENTE' AND NEW.status='ACEPTADA'
+       AND (NEW.quote_status<>'ACEPTADO' OR NEW.confirmed_at IS NULL) THEN
+      RAISE EXCEPTION 'Usá la confirmación directa del conductor para este viaje';
+    END IF;
+    IF OLD.status='PENDIENTE' AND NEW.status='RECHAZADA'
+       AND NEW.quote_status<>'RECHAZADO' THEN
+      RAISE EXCEPTION 'Usá la decisión directa del conductor para este viaje';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+CREATE TRIGGER reservations_fixed_fare_guard_v1
+BEFORE UPDATE ON public.reservations
+FOR EACH ROW EXECUTE FUNCTION public.guard_fixed_fare_reservation_v1();
+
 REVOKE ALL ON FUNCTION public.driver_decide_fixed_pickup_v1(text,uuid,boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.driver_decide_fixed_pickup_v1(text,uuid,boolean) TO anon,authenticated;
 REVOKE ALL ON FUNCTION public.driver_list_reservations_v4(text) FROM PUBLIC;
