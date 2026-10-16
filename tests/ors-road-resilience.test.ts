@@ -61,6 +61,16 @@ describe("ORS road provider resilience",()=>{
       expect(result.category).toBe("invalid_road_geometry");
     }
   });
+  test("verified 0m ORS node with GPS points <=120m apart gives coarse near-pickup ETA",async()=>{
+    const sameRoad={features:[{properties:{summary:{distance:0,duration:0}},
+      geometry:{coordinates:[[-56.01638,-34.83696],[-56.01637,-34.83695]]}}]};
+    const near=[{lat:-34.83696,lng:-56.01638},{lat:-34.83695,lng:-56.01637}];
+    const r=await requestVerifiedOrsRoad(near,"mock",async()=>mk(200,sameRoad));
+    expect(r.ok).toBe(true);
+    if(r.ok){expect(r.route.distanceKm).toBe(0.1);expect(r.route.durationMin).toBe(1);}
+    const far=await requestVerifiedOrsRoad(points,"mock",async()=>mk(200,sameRoad));
+    expect(far.ok).toBe(false);
+  });
   test("detects repeated network failures without leaking coordinates or keys",async()=>{
     let calls=0;
     const result=await requestVerifiedOrsRoad(points,"secret-not-in-logs",async()=>{
