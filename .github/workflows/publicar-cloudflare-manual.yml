@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout código real
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Guardar contrato aprobado del hotfix
         shell: bash
         run: |
