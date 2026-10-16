@@ -1,20 +1,34 @@
 name: Publicar Traslados Web en Cloudflare (manual)
 
-# No se publica por cada commit: CI y producción permanecen separados.
+# Manual by default. One-time approval received on 16/10/2026 to deploy
+# the already CI-verified pickup ETA fix. Push trigger restricted to ONE marker.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/eta-hotfix-once-20261016.trigger'
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    name: Build, pruebas y publicación manual
+    name: Build, pruebas y publicación aprobada
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ops: deploy-worker-eta-20261016-one-shot') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout código real
         uses: actions/checkout@v4
+      - name: Guardar contrato aprobado del hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 126432c0a256f9fcf40be8c661c8f68a084b09bc HEAD
+          grep -q 'getRecentVerifiedRoad(points)' src/routes/api/public/route-estimate.ts
+          grep -q 'nearbyCoincidentEndpoints' src/lib/ors-road-resilience.ts
+          echo 'PASS: hotfix ETA validado está en este commit'
       - name: Instalar Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -63,7 +77,9 @@ jobs:
             echo 'No se encuentra la versión aprobada de Traslados'
             exit 1
           }
-          grep -q 'Consultando Mapa Trayectos' /tmp/home.html || { echo 'Falta disponibilidad Mapa en portada Workers'; exit 1; }
+          # El marcador antiguo "Consultando Mapa Trayectos" ya no forma parte
+          # de la portada SSR actual; exigir la portada pública del CI real.
+          grep -q 'Cada viaje' /tmp/home.html || { echo 'Falta portada funcional de Traslados'; exit 1; }
           code="$(curl -s -o /tmp/ruta.json -w '%{http_code}'             'https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate?points=-56.01638%2C-34.83696%3B-56.18%2C-34.9')"
           echo "Ruta ORS producción HTTP: $code"
           if [ "$code" != "200" ]; then
