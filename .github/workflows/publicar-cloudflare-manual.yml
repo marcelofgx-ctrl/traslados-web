@@ -15,7 +15,8 @@ permissions:
 jobs:
   deploy:
     name: Build, pruebas y publicación aprobada
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ops: deploy-worker-eta-20261016-one-shot') }}
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ops: deploy-worker-eta-20261016-one-shot') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
