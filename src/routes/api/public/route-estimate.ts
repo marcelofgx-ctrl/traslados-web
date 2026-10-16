@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { parseRoadPoints } from "@/lib/road-route";
 import { requestVerifiedOrsRoad } from "@/lib/ors-road-resilience";
 import { fetchVerifiedCachedRoute,fetchPublicReferenceFare } from "@/lib/verified-road-cache";
+import { getRecentVerifiedRoad,saveRecentVerifiedRoad } from "@/lib/recent-verified-road";
 
 /** Single public road-estimate contract used by both Premium and GitHub Pages.
  * 1. ORS/HeiGIT when the secret is present (best route, road geometry).
@@ -22,6 +23,20 @@ export const Route = createFileRoute("/api/public/route-estimate")({
         const points=parseRoadPoints(new URL(request.url).searchParams.get("points"));
         if(!points)return respond({available:false,reason:"invalid_points"},400);
 
+        const serveVerified=async(route:import("@/lib/road-route").RoadRoute)=>{
+          // Rate is never cached: changing the configured price must be visible
+          // without waiting for route cache expiry.
+          const fareController=new AbortController();
+          const fareTimeout=setTimeout(()=>fareController.abort(),600);
+          let fare:number|null=null;
+          try{fare=await fetchPublicReferenceFare(route.distanceKm,fareController.signal);}
+          finally{clearTimeout(fareTimeout);}
+          return respond({...route,calculatedAt:new Date().toISOString(),
+            ...(fare===null?{}:{referenceFareUyu:fare})
+          },200,"private, no-store");
+        };
+        const recent=getRecentVerifiedRoad(points);
+        if(recent)return serveVerified(recent);
         const fromCache=async(reason:"not_configured"|"temporarily_unavailable"|"no_route")=>{
           // The Supabase Edge caller has a 7.5s road-provider deadline.
           // Leave time for a verified ROAD-cache fallback after ORS times out.
@@ -29,7 +44,10 @@ export const Route = createFileRoute("/api/public/route-estimate")({
           const timeout=setTimeout(()=>controller.abort(),1200);
           try{
             const cached=await fetchVerifiedCachedRoute(points,controller.signal);
-            if(cached)return respond(cached,200,"public, max-age=300, s-maxage=300");
+            if(cached){
+              saveRecentVerifiedRoad(points,cached);
+              return serveVerified(cached);
+            }
           }finally{clearTimeout(timeout);}
           return respond({available:false,reason},503);
         };
@@ -46,17 +64,9 @@ export const Route = createFileRoute("/api/public/route-estimate")({
           });
           return fromCache(outcome.reason);
         }
-        const route=outcome.route;
-        // Reference fare is optional; never block an already verified ROAD
-        // ETA on a slow public-fare lookup.
-        const fareController=new AbortController();
-        const fareTimeout=setTimeout(()=>fareController.abort(),600);
-        let fare:number|null=null;
-        try{fare=await fetchPublicReferenceFare(route.distanceKm,fareController.signal);}
-        finally{clearTimeout(fareTimeout);}
-        return respond({...route,calculatedAt:new Date().toISOString(),
-          ...(fare===null?{}:{referenceFareUyu:fare}),
-        },200,"public, max-age=300, s-maxage=300");
+        const route={...outcome.route,calculatedAt:new Date().toISOString()};
+        saveRecentVerifiedRoad(points,route);
+        return serveVerified(route);
       },
     },
   },
