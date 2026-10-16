@@ -73,8 +73,8 @@ BEGIN
   IF v.fare_mode='fixed' THEN
     IF v.route_distance_km IS DISTINCT FROM p_route_distance_km
        OR v.route_duration_min IS DISTINCT FROM p_route_duration_min
-       OR v.quote_final_total IS DISTINCT FROM fare
-       OR v.quote_price_per_km IS DISTINCT FROM rate THEN
+       OR v.quote_final_total IS DISTINCT FROM p_expected_total
+       OR v.quote_price_per_km IS DISTINCT FROM p_expected_rate THEN
       RAISE EXCEPTION 'Solicitud ya utilizada con otro importe o recorrido';
     END IF;
   ELSIF v.fare_mode='quote' AND v.status='PENDIENTE'
