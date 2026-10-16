@@ -15,6 +15,19 @@ export type OrsOutcome=
       category:OrsFailureCategory;httpStatus?:number;attempts:number};
 export type OrsFetch=(url:string,options:RequestInit)=>Promise<Response>;
 const ORS_ENDPOINT="https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson";
+/** ORS can return a verified 0m segment when close GPS points snap to the
+ * same road node. Accept ONLY if the original endpoints are also near. The
+ * 0.1km floor signals a near-zero verified segment, not airline routing. */
+function nearbyCoincidentEndpoints(points:RoadPoint[]):boolean {
+  if(points.length!==2)return false;
+  const [a,b]=points;
+  const radius=6371000,rad=Math.PI/180;
+  const dLat=(b.lat-a.lat)*rad,dLng=(b.lng-a.lng)*rad;
+  const v=Math.sin(dLat/2)**2+
+    Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
+  return 2*radius*Math.atan2(Math.sqrt(v),Math.sqrt(Math.max(0,1-v)))<=120;
+}
+
 
 export async function requestVerifiedOrsRoad(
   points:RoadPoint[],apiKey:string,fetchFn:OrsFetch=fetch
@@ -37,7 +50,10 @@ export async function requestVerifiedOrsRoad(
       if(response.ok){
         const raw:unknown=await response.json();
         const route=parseOrsGeojson(raw);
-        return route
+        if(route && route.distanceKm===0 && nearbyCoincidentEndpoints(points))
+          return {ok:true,route:{...route,distanceKm:0.1,
+            durationMin:Math.max(1,route.durationMin)},attempts:attempt};
+        return route&&route.distanceKm>0
           ? {ok:true,route,attempts:attempt}
           : {ok:false,reason:"no_route",category:"invalid_road_geometry",attempts:attempt};
       }
