@@ -5,3 +5,4 @@ Control: .github/workflows/publicar-cloudflare-manual.yml, con trigger limitado 
 Esta marca NO es credencial, no modifica Supabase, no genera reservas.
 Restituir inmediatamente el workflow a modalidad SOLO manual una vez terminada la ejecución.
 Intento 2: workflow YAML validado, sin alterar rutas, permisos ni secretos.
+Intento 3: checkout con historia completa para verificar el commit aprobado.
