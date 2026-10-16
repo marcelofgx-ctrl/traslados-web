@@ -20,7 +20,7 @@ const ORS_ENDPOINT="https://api.heigit.org/openrouteservice/v2/directions/drivin
  * 0.1km floor signals a near-zero verified segment, not airline routing. */
 function nearbyCoincidentEndpoints(points:RoadPoint[]):boolean {
   if(points.length!==2)return false;
-  const [a,b]=points;
+  const a=points[0]!,b=points[1]!;
   const radius=6371000,rad=Math.PI/180;
   const dLat=(b.lat-a.lat)*rad,dLng=(b.lng-a.lng)*rad;
   const v=Math.sin(dLat/2)**2+
