@@ -1,0 +1,44 @@
+name: QA pickup ETA live no-GPS one-shot 20261016
+on:
+  push:
+    branches: [qa/pickup-eta-public-live-20261016]
+    paths: ['.github/workflows/qa-pickup-eta-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  eta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Real public pickup ETA, one request, no bookings or driver coordinates
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --max-time 24 -sS -D /tmp/pickup-headers.txt -o /tmp/pickup.json -w '%{http_code}' \
+            -X POST 'https://zetaudvvutlouiqxopvg.supabase.co/functions/v1/pickup-eta' \
+            -H 'Origin: https://marcelofgx-ctrl.github.io' \
+            -H 'apikey: sb_publishable_HnbMZW2dKpm6mBq-y5qkaA_Jlfx4BB9' \
+            -H 'Content-Type: application/json' \
+            --data '{"originLat":-34.83696,"originLng":-56.01638}')"
+          echo "HTTP_PICKUP=$status"
+          PICKUP_HTTP="$status" python3 - <<'PY'
+          import json,os
+          with open('/tmp/pickup.json',encoding='utf-8') as f:d=json.load(f)
+          assert "driverLat" not in d and "driverLng" not in d
+          assert "serviceDriverLat" not in d and "serviceDriverLng" not in d
+          status=os.environ['PICKUP_HTTP']
+          reason=d.get('reason')
+          allowed=['not_available','occupied','route_unavailable','rate_limited','temporarily_unavailable','login_required','forbidden','invalid_origin']
+          if d.get('available') is True:
+            assert status=='200'
+            assert isinstance(d.get('distanceKm'),(int,float)) and d['distanceKm']>0
+            assert isinstance(d.get('etaMin'),(int,float)) and d['etaMin']>0
+            assert d.get('confirmationRequired') is True
+            print('RESULT=PASS VERIFIED PICKUP ROAD; distanceKm=',d['distanceKm'],'etaMin=',d['etaMin'])
+          else:
+            assert reason in allowed,'Unexpected pickup result'
+            print('RESULT=UNAVAILABLE reason=',reason,'HTTP=',status)
+            if reason=='route_unavailable':
+              raise SystemExit('FAIL: driver available but road provider returned route_unavailable')
+          PY
