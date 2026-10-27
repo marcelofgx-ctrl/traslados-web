@@ -36,7 +36,8 @@ jobs:
           subcode="$(safe_call workers/subdomain "$RUNNER_TEMP/cf_sub.json")"
           billingcode="$(safe_call subscriptions "$RUNNER_TEMP/cf_billing.json")"
           workerscode="$(safe_call workers/scripts "$RUNNER_TEMP/cf_workers.json")"
-          export SUBCODE="$subcode" BILLINGCODE="$billingcode" WORKERSCODE="$workerscode"
+          d1code="$(safe_call d1/database "$RUNNER_TEMP/cf_d1.json")"
+          export SUBCODE="$subcode" BILLINGCODE="$billingcode" WORKERSCODE="$workerscode" D1CODE="$d1code"
           python3 - <<'PY'
           import json,os
           from pathlib import Path
@@ -44,11 +45,15 @@ jobs:
           def read(name):
             try:return json.loads((root/name).read_text())
             except:return {}
-          sub=read('cf_sub.json');bill=read('cf_billing.json');workers=read('cf_workers.json')
+          sub=read('cf_sub.json');bill=read('cf_billing.json');workers=read('cf_workers.json');d1=read('cf_d1.json')
           ok_sub=os.environ['SUBCODE']=='200' and sub.get('success') is True and bool((sub.get('result') or {}).get('subdomain'))
           ok_workers=os.environ['WORKERSCODE']=='200' and workers.get('success') is True
           existing=[w.get('id','') for w in workers.get('result',[]) if isinstance(w,dict)] if ok_workers else []
           has_qa=any(w in ['quicktrip-qa-channel','quicktrip-live-qa'] for w in existing)
+          d1_access=os.environ['D1CODE']=='200' and d1.get('success') is True
+          d1_names=[db.get('name','') for db in (d1.get('result') or []) if isinstance(db,dict)] if d1_access else []
+          print('D1 list permission:', 'CONFIRMED' if d1_access else 'UNAVAILABLE (D1 Read may be missing)')
+          print('QA D1 pre-existing:', 'YES' if 'quicktrip-live-qa-only' in d1_names else 'NO OR UNKNOWN')
           price=[]
           if os.environ['BILLINGCODE']=='200' and bill.get('success') is True:
             for subsc in bill.get('result',[]):
