@@ -1,0 +1,66 @@
+name: Quick Trip Live - Cloudflare access read-only preflight
+on:
+  push:
+    branches: [qa/quicktrip-live-cloudflare-preflight-20261027]
+    paths: [.github/workflows/qa-quicktrip-live-cloudflare-preflight.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Existing Cloudflare credentials - read ONLY
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || 'aeda5eba5536ca3ffad786c099abb71a' }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CF_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is unavailable in this branch. No changes made."
+            exit 2
+          fi
+          if ! [[ "$CF_ACCOUNT" =~ ^[a-f0-9]{32}$ ]]; then
+            echo "::error::Invalid account ID. No changes made."
+            exit 2
+          fi
+          safe_call() {
+            local route="$1" dest="$2"
+            curl -sS --max-time 12 -o "$dest" -w "%{http_code}" \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              -H "Accept: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/$route"
+          }
+          subcode="$(safe_call workers/subdomain "$RUNNER_TEMP/cf_sub.json")"
+          billingcode="$(safe_call subscriptions "$RUNNER_TEMP/cf_billing.json")"
+          workerscode="$(safe_call workers/scripts "$RUNNER_TEMP/cf_workers.json")"
+          export SUBCODE="$subcode" BILLINGCODE="$billingcode" WORKERSCODE="$workerscode"
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])
+          def read(name):
+            try:return json.loads((root/name).read_text())
+            except:return {}
+          sub=read('cf_sub.json');bill=read('cf_billing.json');workers=read('cf_workers.json')
+          ok_sub=os.environ['SUBCODE']=='200' and sub.get('success') is True and bool((sub.get('result') or {}).get('subdomain'))
+          ok_workers=os.environ['WORKERSCODE']=='200' and workers.get('success') is True
+          existing=[w.get('id','') for w in workers.get('result',[]) if isinstance(w,dict)] if ok_workers else []
+          has_qa=any(w in ['quicktrip-qa-channel','quicktrip-live-qa'] for w in existing)
+          price=[]
+          if os.environ['BILLINGCODE']=='200' and bill.get('success') is True:
+            for subsc in bill.get('result',[]):
+              rp=subsc.get('rate_plan') or {}
+              text=(str(rp.get('id',''))+' '+str(rp.get('public_name',''))+' '+str(rp.get('sets',[]))).lower()
+              if 'worker' in text:
+                price.append((str(rp.get('id','')),str(subsc.get('price','unknown'))))
+          print('Cloudflare subdomain access:', 'CONFIRMED' if ok_sub else 'NOT CONFIRMED')
+          print('Cloudflare Worker list access:', 'CONFIRMED' if ok_workers else 'NOT CONFIRMED')
+          print('QA Worker pre-existing:', 'YES' if has_qa else 'NO')
+          print('Workers billing verification:', ' '.join('plan='+p+' price='+v for p,v in price) if price else 'UNKNOWN (Billing Read may be missing)')
+          print('NO RESOURCES CREATED, NO DEPLOYMENT, NO WRITES, NO BILLABLE SERVICE ACTIVATED')
+          if not ok_sub or not ok_workers:
+            raise SystemExit('Read-only credentials preflight failed; no resource actions authorized')
+          PY
