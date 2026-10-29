@@ -1,0 +1,38 @@
+name: QA pickup-eta v9 live CORS smoke (read-only validation)
+on:
+  push:
+    branches: [qa/pickup-eta-v9-runtime-smoke-20261029]
+    paths:
+      - 'tests/qa_pickup_eta_runtime_smoke.py'
+      - '.github/workflows/qa-pickup-eta-runtime-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  safe-postdeploy-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check only verification files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in $(git diff-tree --no-commit-id --name-only -r HEAD); do
+            case "$f" in
+              tests/qa_pickup_eta_runtime_smoke.py|.github/workflows/qa-pickup-eta-runtime-smoke.yml) ;;
+              *) echo "Unexpected file change: $f"; exit 1 ;;
+            esac
+          done
+          python3 -m py_compile tests/qa_pickup_eta_runtime_smoke.py
+      - name: Validate deployed Edge (preflights and invalid sessions only)
+        run: python3 tests/qa_pickup_eta_runtime_smoke.py
+      - name: Preserve results on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickTrip-Pickup-ETA-v9-HTTP-Safety
+          path: artifacts/qa-pickup-eta-runtime/
+          if-no-files-found: warn
+          retention-days: 14
