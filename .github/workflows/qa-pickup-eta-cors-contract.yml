@@ -1,0 +1,50 @@
+name: QA Pickup ETA CORS and contract - isolated only
+on:
+  push:
+    branches: [qa/quicktrip-pickup-eta-cors-contract-20261028]
+    paths:
+      - 'supabase/functions/pickup-eta/index.ts'
+      - 'operativa/edge-functions/pickup-eta/index.ts'
+      - 'tests/pickup-eta-cors-qa.test.ts'
+      - '.github/workflows/qa-pickup-eta-cors-contract.yml'
+      - 'docs/QA_PICKUP_ETA_CORS_CONTRACT_20261028.md'
+permissions:
+  contents: read
+jobs:
+  mock-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout without writable credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Bun version (no dependencies)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.4'
+      - name: Verify only authorized files were changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff-tree --no-commit-id --name-only -r HEAD > /tmp/qa-changed-files
+          while read -r file; do
+            case "$file" in
+              supabase/functions/pickup-eta/index.ts|operativa/edge-functions/pickup-eta/index.ts|tests/pickup-eta-cors-qa.test.ts|.github/workflows/qa-pickup-eta-cors-contract.yml|docs/QA_PICKUP_ETA_CORS_CONTRACT_20261028.md) ;;
+              *) echo "Unauthorized file: $file"; exit 1 ;;
+            esac
+          done < /tmp/qa-changed-files
+          cmp supabase/functions/pickup-eta/index.ts operativa/edge-functions/pickup-eta/index.ts
+      - name: CORS/guest/session and privacy tests (all network mocked)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun test tests/pickup-eta-cors-qa.test.ts tests/pickup-eta-policy.test.ts
+      - name: Archive isolated contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickTrip-Pickup-ETA-CORS-QA
+          path: artifacts/qa-pickup-eta/
+          if-no-files-found: warn
+          retention-days: 14

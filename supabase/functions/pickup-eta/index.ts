@@ -8,7 +8,9 @@
  */
 const allowed=new Set([
   "https://marcelofgx-ctrl.github.io",
-  "https://traslados-web.marcelof-gx.workers.dev"
+  "https://traslados-web.marcelof-gx.workers.dev",
+  // Exact, reviewed passenger QA preview. Other *.vercel.app origins stay denied.
+  "https://quicktrip-live-qa-only-20261027-59j1a946w-marcelofgx-1927.vercel.app"
 ]);
 const routeUrl="https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate";
 // In-memory, best-effort cache per Edge isolate: never replaces the SQL
@@ -37,8 +39,9 @@ function response(body:unknown,status=200,origin:string|null=null){
   };
   if(origin && allowed.has(origin)){
     headers["Access-Control-Allow-Origin"]=origin;
-    headers["Access-Control-Allow-Headers"]="apikey, authorization, content-type";
+    headers["Access-Control-Allow-Headers"]="apikey, authorization, content-type, x-client-info";
     headers["Access-Control-Allow-Methods"]="POST, OPTIONS";
+    headers["Access-Control-Max-Age"]="600";
   }
   return new Response(JSON.stringify(body),{status,headers});
 }
@@ -102,8 +105,11 @@ Deno.serve(async(req)=>{
     }
     // Service-role SQL returns accurate coordinates ONLY to this trusted Edge.
     // Public response remains coarsened; browser never sees the GPS point.
-    const driverLat=guest?context["serviceDriverLat"]:context["driverLat"];
-    const driverLng=guest?context["serviceDriverLng"]:context["driverLng"];
+    // Match the private, service-role SQL contract. Guest coordinates are
+    // already rounded to ~1 km by driver_pickup_public_context_v1; never
+    // substitute raw driverLat/driverLng if coarse fields are missing.
+    const driverLat=guest?context["coarseDriverLat"]:context["driverLat"];
+    const driverLng=guest?context["coarseDriverLng"]:context["driverLng"];
     if(typeof driverLat!=="number"||typeof driverLng!=="number"
        ||!Number.isFinite(driverLat)||!Number.isFinite(driverLng))
        return response({available:false,reason:"temporarily_unavailable"},503,origin);
@@ -129,9 +135,9 @@ Deno.serve(async(req)=>{
       }finally{clearTimeout(timer);}
     }
     // Privacy: coarse ranges, not exact geometric breadcrumbs.
-      // UI text always says "sujeto a confirmación", never a confirmed booking.
-      const kms=Math.max(0.5,Math.ceil(result.distanceKm*2)/2);
-      const eta=Math.max(5,Math.ceil(Math.max(1,result.durationMin)/5)*5);
+    // UI text always says "sujeto a confirmación", never a confirmed booking.
+    const kms=Math.max(0.5,Math.ceil(result.distanceKm*2)/2);
+    const eta=Math.max(5,Math.ceil(Math.max(1,result.durationMin)/5)*5);
       return response({
         available:true,status:"available_for_requests",
         distanceKm:kms,etaMin:eta,
