@@ -163,8 +163,10 @@ describe("Quick Trip pickup-eta QA CORS/contract (local mocks only)",()=>{
         expect(response.status).toBe(200);
         expect((await response.json() as Json).reason).toBe("occupied");
         pass(source,"schedule conflict blocks ETA");
+        // A fresh mock driver position is required: the previous successful
+        // road lookup was cached, and cache reuse must not masquerade as failure.
         db={available:true,coarseDriverLat:-34.81,coarseDriverLng:-56.06,
-          driverLat:-34.812345,driverLng:-56.067890,locationAgeSec:23};
+          driverLat:-34.815432,driverLng:-56.074321,locationAgeSec:23};
         road={available:false,reason:"no_route"};
         response=await run(request(QA,TOKEN));
         expect(response.status).toBe(200);
