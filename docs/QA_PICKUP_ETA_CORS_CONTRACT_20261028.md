@@ -12,7 +12,7 @@
 ## Contract implemented in QA only
 
 - Byte-identical source in both pickup-eta directories. Preserves guest and authenticated-session branches.
-- Exact allowed origins: https://marcelofgx-ctrl.github.io, https://traslados-web.marcelof-gx.workers.dev, and https://quicktrip-live-qa-only-20261027-59j1a946w-marcelofgx-1927.vercel.app.
+- Exact allowed origins: https://marcelofgx-ctrl.github.io, https://traslados-web.marcelof-gx.workers.dev, https://quicktrip-live-qa-only-20261027-59j1a946w-marcelofgx-1927.vercel.app **plus the four exact legacy QA origins present in deployed Edge v8**. This explicitly prevents regressions for older, still-reachable QA URLs.
 - No wildcard *.vercel.app: later previews must be authorized individually. Preflight responds with Origin, Vary, POST/OPTIONS, apikey, authorization, content-type and x-client-info.
 - Guest access still requires the approved Origin and SQL service-only gate driver_pickup_public_context_v1 with its consent, rate limits, coarsening and schedule protection. Uses exclusively coarseDriverLat and coarseDriverLng; fails closed if absent.
 - Customer session uses driver_pickup_eta_context_v1, with existing custom session-token gate. Exact GPS only passes from SQL to the trusted road service, never in the passenger response. No imitation route; still requires a verified OpenRouteService or verified ROAD cache.
@@ -23,3 +23,10 @@
 The isolated workflow runs Bun tests for both versioned implementations, existing privacy regressions, positive/negative preflight, guest/session, unauthorized Origin, missing keys, rate limits, schema result field mapping, provider errors and no GPS leakage. All outgoing calls are intercepted by local mocks; it does not query live Supabase or send real reservations.
 
 A green result is **code QA only**, not proof of the deployed Edge runtime, deployed SQL, JWT setting, Samsung ETA or current GPS publication. Live deployment requires separate explicit approval and then real CORS + Samsung verification without exposing vehicle coordinates.
+
+## Read-only runtime verification (2026-10-28/29)
+
+- Real Edge pickup-eta is ACTIVE at version 8 with verify_jwt=false; its deployed code lacks the exact new Vercel preview Origin.
+- A read-only system-catalog inspection of real PostgreSQL (no user data) confirmed driver_pickup_public_context_v1 returns BOTH coarseDriverLat/coarseDriverLng and serviceDriverLat/serviceDriverLng. Therefore missing fields are NOT a live SQL error today; CORS is the primary established incompatibility. The original SQL migration checked in Git includes only coarse fields; the deployed database evolved beyond it.
+- Only 22 line-level differences were observed between deployed Edge v8 and the QA candidate, mainly origins, preflight headers, guest coordinates and formatting. All four old QA origins were retained in the branch after this review.
+- **No deploy is authorized by this document.** A future deploy needs separate explicit approval and must retain verify_jwt=false for the existing custom-token passenger contract. Neither a source diff nor mocked CI proves GPS availability or actual ETA in Samsung.

@@ -6,6 +6,7 @@ type Json=Record<string,unknown>;
 const QA="https://quicktrip-live-qa-only-20261027-59j1a946w-marcelofgx-1927.vercel.app";
 const LEGACY="https://marcelofgx-ctrl.github.io";
 const WORKER="https://traslados-web.marcelof-gx.workers.dev";
+const LEGACY_QA=["https://quicktrip-v86-qa-samsung-20261025-git-qa-05b826-marcelofgx-1927.vercel.app","https://quicktrip-live-qa-only-20261027-1jxnar9t8-marcelofgx-1927.vercel.app","https://quicktrip-live-qa-only-20261027-jfz3kqn98-marcelofgx-1927.vercel.app","https://quicktrip-live-qa-only-20261027-marcelofgx-1927.vercel.app"];
 const BAD="https://untrusted.vercel.app";
 const TOKEN="qa-session-token-only-12345678901234567890";
 const FAKE_DB="https://qa-backend.invalid";
@@ -88,7 +89,7 @@ describe("Quick Trip pickup-eta QA CORS/contract (local mocks only)",()=>{
         expect(response.headers.get("Vary")).toBe("Origin");
         expect(outbound).toHaveLength(0);
         pass(source,"exact Vercel QA preflight; no backend calls");
-        for(const origin of [LEGACY,WORKER]){
+        for(const origin of [LEGACY,WORKER,...LEGACY_QA]){
           response=await run(preflight(origin));
           expect(response.status).toBe(200);
           expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);

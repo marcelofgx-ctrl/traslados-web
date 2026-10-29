@@ -9,6 +9,11 @@
 const allowed=new Set([
   "https://marcelofgx-ctrl.github.io",
   "https://traslados-web.marcelof-gx.workers.dev",
+  // Preserve exact origins still present in the active Supabase Edge v8.
+  "https://quicktrip-v86-qa-samsung-20261025-git-qa-05b826-marcelofgx-1927.vercel.app",
+  "https://quicktrip-live-qa-only-20261027-1jxnar9t8-marcelofgx-1927.vercel.app",
+  "https://quicktrip-live-qa-only-20261027-jfz3kqn98-marcelofgx-1927.vercel.app",
+  "https://quicktrip-live-qa-only-20261027-marcelofgx-1927.vercel.app",
   // Exact, reviewed passenger QA preview. Other *.vercel.app origins stay denied.
   "https://quicktrip-live-qa-only-20261027-59j1a946w-marcelofgx-1927.vercel.app"
 ]);
