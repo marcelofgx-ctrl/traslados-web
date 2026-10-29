@@ -1,0 +1,13 @@
+{
+  "name": "pickup-eta",
+  "projectId": "zetaudvvutlouiqxopvg",
+  "deployedVersion": 8,
+  "status": "ACTIVE",
+  "verify_jwt": false,
+  "source_sha256": "19838d2bdee029bfac7a6a9e66fbad56de751af8c3f79aa014b3b926d07ce028",
+  "source_file": "backup/pickup-eta-v8/index.ts",
+  "original_file_names": [
+    "index.ts"
+  ],
+  "note": "Rollback snapshot of deployed Edge v8 before authorized QA change. To restore deploy source index.ts with verify_jwt=false. No secrets included."
+}
