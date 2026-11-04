@@ -1,0 +1,109 @@
+name: Publish approved Quick Trip P2.8 to separate Cloudflare Pages production
+on:
+  push:
+    branches:
+      - release/quicktrip-p28-cloudflare-20261104
+    paths:
+      - .github/workflows/quicktrip-p28-cloudflare-release.yml
+permissions:
+  contents: read
+concurrency:
+  group: quicktrip-p28-cloudflare-production
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated deployment workflow
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Checkout exact validated P2.8 commit (never main)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: marcelofgx-ctrl/traslados-android
+          ref: 47108d31a60857ddb0514b2d5f935b5d02ed6e6c
+          path: p28
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Validate exact SHA, homepage and passenger contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C p28 rev-parse HEAD)" = "47108d31a60857ddb0514b2d5f935b5d02ed6e6c"
+          grep -Fq 'url=./web-pasajero/' p28/index.html
+          grep -Fq 'quicktrip-p28-home-first-20261104' p28/web-pasajero/sw.js
+          grep -Fq 'passenger-auth-gate' p28/web-pasajero/index.html
+          grep -Fq 'requireAccountForNewTrip()' p28/web-pasajero/app.js
+          node --check p28/web-pasajero/app.js
+          node --check p28/web-pasajero/quicktrip-clean.js
+          node --check p28/web-pasajero/reservation-live.js
+          node p28/tests/quicktrip-tracking-metrics-contract.cjs
+      - name: Package the identical P2.8 passenger web for Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cf-quicktrip/dist/web-pasajero cf-quicktrip/functions/api
+          cp p28/index.html cf-quicktrip/dist/index.html
+          rsync -a --exclude='*.apk' --exclude='*.aab' --exclude='*.jks' --exclude='*.keystore' --exclude='*.pfx' --exclude='*.p12' p28/web-pasajero/ cf-quicktrip/dist/web-pasajero/
+          test -s cf-quicktrip/dist/web-pasajero/index.html
+          test -s cf-quicktrip/dist/web-pasajero/sw.js
+          if find cf-quicktrip/dist -type f -size +25M -print -quit | grep -q .; then
+            echo 'Asset exceeds Cloudflare Pages 25 MiB static-file limit'; exit 1
+          fi
+          cat > cf-quicktrip/functions/api/testing-road.js <<'EOF'
+          export async function onRequestGet({ request }) {
+            const incoming = new URL(request.url);
+            const upstream = new URL("https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate");
+            upstream.search = incoming.search;
+            try {
+              const result = await fetch(upstream.toString(), {
+                method: "GET", headers: { Accept: "application/json" }
+              });
+              return new Response(result.body, {
+                status: result.status,
+                headers: {
+                  "Content-Type": result.headers.get("Content-Type") || "application/json",
+                  "Cache-Control": "no-store"
+                }
+              });
+            } catch {
+              return Response.json({ available: false, reason: "network_error" }, {
+                status: 503, headers: { "Cache-Control": "no-store" }
+              });
+            }
+          }
+          EOF
+          node --check cf-quicktrip/functions/api/testing-road.js
+      - name: Publish on separate Cloudflare Pages Free project (no Worker or Supabase changes)
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || 'aeda5eba5536ca3ffad786c099abb71a' }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing Cloudflare token in repository secrets'; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing Cloudflare account ID'; exit 2; }
+          cd cf-quicktrip
+          npx --yes wrangler@4.45.0 pages project list --json > /tmp/quicktrip-existing-pages.json
+          if node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync("/tmp/quicktrip-existing-pages.json","utf8"));const list=Array.isArray(d)?d:(d.result||d.projects||[]);process.exit(list.some(x=>x.name==="quicktrip-marcelo-uy")?0:1)'; then
+            echo 'Project quicktrip-marcelo-uy already exists: refusing to overwrite.'; exit 3
+          fi
+          npx --yes wrangler@4.45.0 pages project create quicktrip-marcelo-uy --production-branch=production
+          npx --yes wrangler@4.45.0 pages deploy dist --project-name=quicktrip-marcelo-uy --branch=production --commit-hash=47108d31a60857ddb0514b2d5f935b5d02ed6e6c
+      - name: Read-only smoke of public homepage and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          site='https://quicktrip-marcelo-uy.pages.dev'
+          curl -fsSL --retry 6 --retry-delay 5 --max-time 25 "$site/" -o /tmp/quicktrip-p28-home.html
+          grep -Fq 'Quick Trip' /tmp/quicktrip-p28-home.html
+          curl -fsSL --retry 5 --retry-delay 5 --max-time 25 "$site/web-pasajero/" -o /tmp/quicktrip-p28-passenger.html
+          grep -Fq 'passenger-auth-gate' /tmp/quicktrip-p28-passenger.html
+          curl -fsSL --retry 5 --retry-delay 5 --max-time 25 "$site/web-pasajero/sw.js" -o /tmp/quicktrip-p28-sw.js
+          grep -Fq 'quicktrip-p28-home-first-20261104' /tmp/quicktrip-p28-sw.js
+          echo 'PUBLIC_PRODUCTION_DEPLOY_READY: exact Quick Trip P2.8 homepage, auth UI and service worker'
