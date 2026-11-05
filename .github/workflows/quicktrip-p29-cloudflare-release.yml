@@ -1,0 +1,87 @@
+name: Publish Quick Trip P2.9 Cloudflare Pages production
+on:
+  push:
+    branches: [release/quicktrip-p29-cloudflare-20261105]
+    paths: [.github/workflows/quicktrip-p29-cloudflare-release.yml]
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: marcelofgx-ctrl/traslados-android
+          ref: 25a3c8359b82cc9745460b06b907ef38aa66d802
+          path: p29
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verify immutable P2.9 and existing contracts
+        run: |
+          set -euo pipefail
+          test "$(git -C p29 rev-parse HEAD)" = "25a3c8359b82cc9745460b06b907ef38aa66d802"
+          grep -Fq 'quicktrip-p29-white-car-wide-map-20261104' p29/web-pasajero/sw.js
+          grep -Fq 'premium-map.js?v=p29-white-vehicle-wide-follow-20261104' p29/web-pasajero/index.html
+          grep -Fq 'passenger-auth-gate' p29/web-pasajero/index.html
+          node --check p29/web-pasajero/premium-map.js
+          node --check p29/web-pasajero/app.js
+          node --check p29/web-pasajero/reservation-live.js
+          (cd p29 && node web-pasajero/tests/premium-map-smoke.cjs && node tests/quicktrip-p29-vehicle-camera-contract.cjs && node tests/quicktrip-tracking-metrics-contract.cjs)
+      - name: Package only public passenger PWA, preserve route same-origin proxy
+        run: |
+          set -euo pipefail
+          mkdir -p cloudflare-p29/dist/web-pasajero cloudflare-p29/functions/api
+          cp p29/index.html cloudflare-p29/dist/index.html
+          rsync -a --exclude='*.apk' --exclude='*.aab' --exclude='*.jks' --exclude='*.keystore' --exclude='*.pfx' --exclude='*.p12' --exclude='.env*' --exclude='tests/' --exclude='pruebas/' p29/web-pasajero/ cloudflare-p29/dist/web-pasajero/
+          test -s cloudflare-p29/dist/web-pasajero/premium-map.js
+          if find cloudflare-p29/dist -type f -size +25M -print -quit | grep -q .; then echo "Oversized asset"; exit 1; fi
+          cat > cloudflare-p29/functions/api/testing-road.js <<'EOF'
+          export async function onRequestGet({request}){
+            const incoming=new URL(request.url);
+            const upstream=new URL("https://traslados-web.marcelof-gx.workers.dev/api/public/route-estimate");
+            upstream.search=incoming.search;
+            try{
+              const r=await fetch(upstream.toString(),{method:"GET",headers:{Accept:"application/json"}});
+              return new Response(r.body,{status:r.status,headers:{"Content-Type":r.headers.get("Content-Type")||"application/json","Cache-Control":"no-store"}});
+            }catch{
+              return Response.json({available:false,reason:"network_error"},{status:503,headers:{"Cache-Control":"no-store"}});
+            }
+          }
+          EOF
+          node --check cloudflare-p29/functions/api/testing-road.js
+      - name: Deploy only isolated Quick Trip Pages project
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || 'aeda5eba5536ca3ffad786c099abb71a' }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing Cloudflare token"; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing Cloudflare account"; exit 2; }
+          code="$(curl -sS --max-time 25 -o /tmp/quicktrip-pages-project.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/quicktrip-marcelo-uy")"
+          cd cloudflare-p29
+          if [ "$code" = "404" ]; then
+            npx --yes wrangler@4.45.0 pages project create quicktrip-marcelo-uy --production-branch=production
+          elif [ "$code" = "200" ]; then
+            echo "Existing isolated Pages project found"
+          else
+            echo "Cloudflare API project lookup returned HTTP $code"; exit 3
+          fi
+          npx --yes wrangler@4.45.0 pages deploy dist --project-name=quicktrip-marcelo-uy --branch=production --commit-hash=25a3c8359b82cc9745460b06b907ef38aa66d802
+      - name: Confirm public static production P2.9
+        run: |
+          set -euo pipefail
+          site=https://quicktrip-marcelo-uy.pages.dev
+          curl -fsSL --retry 4 --retry-delay 4 --max-time 20 "$site/" | grep -q 'Quick Trip'
+          curl -fsSL --retry 4 --retry-delay 4 --max-time 20 "$site/web-pasajero/" -o /tmp/p29-page.html
+          grep -Fq 'premium-map.js?v=p29-white-vehicle-wide-follow-20261104' /tmp/p29-page.html
+          curl -fsSL --retry 4 --retry-delay 4 --max-time 20 "$site/web-pasajero/premium-map.js" -o /tmp/p29-map.js
+          grep -Fq 'premium-map-driver-p29' /tmp/p29-map.js
+          curl -fsSL --retry 4 --retry-delay 4 --max-time 20 "$site/web-pasajero/sw.js" -o /tmp/p29-sw.js
+          grep -Fq 'quicktrip-p29-white-car-wide-map-20261104' /tmp/p29-sw.js
+          echo 'P2.9 PUBLIC STATIC VERIFIED'
